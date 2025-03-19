@@ -1,0 +1,19 @@
+{
+  "id": "marshall.nekiu.bookmark",
+  "name": "BookMark",
+  "main": "dist/main.js",
+  "version": "1.0.0",
+  "readme": "readme.md",
+  "icon": "icon.png",
+  "files": [],
+  "minVersionCode" : 290,
+  "license": "MIT",
+  "changelogs": "changelogs.md",
+  "keywords": [],
+  "price": 0,
+  "author": {
+    "name": "MarshallNekiu",
+    "email": "",
+    "github": "MarshallNekiu"
+  }
+}

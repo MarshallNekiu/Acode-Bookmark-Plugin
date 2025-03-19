@@ -1,0 +1,22 @@
+{
+  "name": "BookMark",
+  "version": "1.0.0",
+  "description": "Acode Plugin.",
+  "main": "src/main.js",
+  "repository": "https://github.com/MarshallNekiu/Acode-Bookmark-Plugin.git",
+  "author": "MarshallNekiu",
+  "license": "MIT",
+  "dependencies": {
+    "@types/ace": "^0.0.50",
+    "html-tag-js": "^1.1.41"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "jszip": "^3.10.1"
+  },
+  "scripts": {
+    "dev": "node esbuild.config.mjs --serve",
+    "build": "node esbuild.config.mjs"
+  },
+  "browserslist": "cover 100%,not android < 5"
+}
