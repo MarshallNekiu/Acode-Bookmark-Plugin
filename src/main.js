@@ -151,10 +151,10 @@ class AcodePlugin {
 		  	
 		  	for (var i = 0; i < bmArray.length; i++) {
 		  		var bmi = bmArray[i];
-		  		itemArray.push(["Line: " + (bmi + 1) + " - " + editor.session.getLine(bmi), bmi]);
+		  		itemArray.push([(bmi + 1) + ": " + editor.session.getLine(bmi), bmi]);
 		  	}
 		  	
-		  	const menu = ContextMenu('Menu Content', {
+		  	const menu = ContextMenu('Bookmark List', {
 						top: 128,
 						left: 128,
 						items: itemArray,
@@ -182,10 +182,10 @@ class AcodePlugin {
 		    
 		  	for (var i = 0; i < bmArray.length; i++) {
 		  		const bmi = bmArray[i];
-		  		itemArray.push(["Line: " + (bmi + 1) + " - " + editor.session.getLine(bmi), bmi]);
+		  		itemArray.push([(bmi + 1) + ": " + editor.session.getLine(bmi), bmi]);
 		  	}
 		  	
-		  	const menu = ContextMenu('BookMark', {
+		  	const menu = ContextMenu('Erase BookMark', {
 						top: 128,
 						left: 128,
 						items: itemArray,
