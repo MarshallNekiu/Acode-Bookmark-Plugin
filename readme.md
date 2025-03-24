@@ -1,16 +1,20 @@
 # Bookmark
 
 A simple plugin to navigate through text.
-This is the first plugin I made, at time i learn the enviroment for that.</br>
-This can be updated for my needs(or keep if i feel comfy with it), within my capabilities learned and that can learn, still any request for update are welcome.
 
 ## Behavior
 
-The bookmark are saved in your Acode folder as *bookmark.json*. The bookmark are listed by *file id*, if you move or rename the file, the id changes and the old one remains, you need to remove manually.
-
-- **Save/Load**: If *bookmark.json* doesn't exist, create it.
-- **Save**: Save the *Bookmark list* for the current file. If the *file id* is not found, create it and push the *Bookmark List*.
-- **Load**: Load the *Bookmark list* for the current file. If the *file id is* not found, create it and push an empty *Bookmark List* and clear the actual one.
 - **Add**: Add the focused line to the *Bookmark List*.
 - **Show**: Show the *Bookmark List*, selecting one jump to the bookmark.
-- **Erase**: Show the *Bookmark List*, selecting one erase the bookmark.
+- **Save**: Save the *Bookmark list* for the current file.
+- **Load**: Load the *Bookmark list* for the current file.
+- **File**: Show the *Files* with a *Bookmark List*.
+
+## Warning
+
+Manipulation of indentation over a bookmark cause unexpected behavior on its position.*Working on that*.
+
+## Releases
+
+- **v1.0.2**: [Bookmark First Release.](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.0.2).
+- **v1.1.0**: [Bookmark Simple HTML.](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.1.0).

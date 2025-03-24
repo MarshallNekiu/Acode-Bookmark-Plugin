@@ -1,139 +1,332 @@
 
 import plugin from '../plugin.json';
+import styles from './styles.scss';
 
 const fs = acode.require('fsOperation');
-const SideButton = acode.require('sideButton')
-const ContextMenu = acode.require('contextmenu');
+const SideButton = acode.require('sideButton');
 
 class AcodePlugin {
 	
 	async init() {
-    const editor = editorManager.editor;
-  	const bmPath = window.DATA_STORAGE + "bookmark.json"
-  	const bmFile = await fs(bmPath);
-  	
-  	var bmArray = [];
-  	
-  	const saveSB = SideButton({
-		  text: 'saveBM',
-		  icon: 'my-icon',
-		  async onclick() {
-		  	
-		  	if (await bmFile.exists() == false) {
+  	const fsData = await fs(window.DATA_STORAGE + "bookmark.json");
+  	const style = document.createElement('style');
+	  style.type = 'text/css';
+	  style.innerHTML = styles;
+		document.head.append(style);
+	  
+		const bmPanel = tag("section", { className: "bm-container" });
+		const bmOverlay = tag("div", { className: "bm-overlay" });
+		
+		bmPanel.innerHTML = `
+		  <div class="bm-container-top">
+		    <div>
+		  	 <button class="bm-btn-add" data-action="add"> Add </button>
+		      <button class="bm-btn-save" data-action="save"> Save </button>
+		      <button class="bm-btn-load" data-action="load"> Load </button>
+		      <button class="bm-btn-file" data-action="file"> File </button>
+		    </div>
+	      <button class="bm-btn-close" data-action="close"> Close </button>
+		  </div>
+		  <ul class="bm-list"></ul>
+		`;
+		
+		const bmPanelTop = bmPanel.querySelector(".bm-container-top");
+		const bmList = bmPanel.querySelector(".bm-list");
+		
+		const filePanel = tag("section", { className: "bm-container" });
+		
+		filePanel.innerHTML = `
+		  <div class="bm-container-top">
+	      <button class="bm-btn-close" data-action="close"> Close </button>
+		  </div>
+		  <ul class="bm-list"></ul>
+		`;
+		
+		const filePanelTop = filePanel.querySelector(".bm-container-top");
+		const fileList = filePanel.querySelector(".bm-list");
+		
+		const listItem = `
+			<li class="bm-item">
+				<p class="bm-item-prefix"></p>
+	  		<p class="bm-item-text" data-action="select"></p>
+	      <button class="bm-btn-erase" data-action="erase"> Erase </button>
+	     </li>
+		`;
+		
+		var bmArray = [];
+		var bmVisible = false;
+		var fileVisible = false;
+		
+		bmPanelTop.addEventListener("click", async (e) => {
+			const target = e.target.closest("[data-action]");
+				
+			  if (!target) {return};
+				
+			  if (await fsData.exists() == false) {
 		  		await fs(window.DATA_STORAGE).createFile("bookmark.json", "");
 		  	}
 		  	
-		  	const bmFileContent = await bmFile.readFile("utf8");
-		  	const bmSplit = bmFileContent.split(";\n");
-		  	
-		  	var bmNewFile = "";
-		  	var bmFound = false;
-		  	
-		  	var bmf = editorManager.activeFile.filename;
-		  	var bmid = editorManager.activeFile.id;
-		  	
-		  	for (var i = 0; i < bmSplit.length; i++) {
-		  		
-		  		if (bmSplit[i].startsWith("{")) {
-			  		var bmData = JSON.parse(bmSplit[i]);
+		  	var bmDataRaw = await fsData.readFile("utf8");
+		  	var bmDataSplit = bmDataRaw.split(";\n");
+			  
+			  switch(target.dataset.action) {
+			  	case "add":
+				  	var bmNew = editorManager.editor.getSelectionRange().start.row;
+				  	
+				  	if (bmArray.indexOf(bmNew) == -1) {
+				  		var newArray = [];
+				  		
+				  		for (var i = 0; i < bmArray.length; i++) {
+				  			if (bmArray[i] >= bmNew) {break};
+				  			newArray.push(bmArray[i])
+				  		}
+				  		
+				    	newArray.push(bmNew);
+				    	
+				    	for (var i = newArray.length -1; i < bmArray.length; i++) {
+				    		newArray.push(bmArray[i]);
+				    	}
+				    	
+				    	bmArray = newArray;
+				    	
+				    	bmList.insertAdjacentHTML("beforeend", listItem);
+				    	
+				    	if (bmVisible) {
+				    		
+				    		for (var i = 0; i < bmArray.length; i++) {
+				    			bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
+						  		bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
+				    		}
+				    	}
+				  	}
+				  	return;
+			  	case "save":
+				  	var bmNewData = "";
+				  	var bmFound = false;
+				  	
+				  	var bmfn = (editorManager.activeFile?.location == null ? "" : editorManager.activeFile?.location) + editorManager.activeFile.filename;
+				  	var bmid = editorManager.activeFile.id;
+				  	
+				  	for (var i = 0; i < bmDataSplit.length; i++) {
+				  		
+				  		if (bmDataSplit[i] != "") {
+					  		var bmData = JSON.parse(bmDataSplit[i]);
+					  		
+					  		if (bmData.id == bmid) {
+					  			bmData.name = bmfn;
+					  			bmData.array = bmArray;
+					  			
+					  			bmFound = true;
+					  		}
+					  		
+					  		bmNewData += JSON.stringify(bmData) + ";\n";
+				  		}
+				  	}
+				  	
+				  	if (bmFound == false) {
+				  		bmNewData += JSON.stringify({id: bmid, name: bmfn, array: bmArray}) + ";\n";
+				  	}
+				  	
+				  	await fsData.writeFile(bmNewData);
+			  		return
+			  	case "load":
+				  	var bmNewData = "";
+				  	var bmFound = false;
+				  	
+				  	var bmfn = (editorManager.activeFile?.location == null ? "" : editorManager.activeFile?.location) + editorManager.activeFile.filename;
+				  	var bmid = editorManager.activeFile.id;
+				  	
+				  	for (var i = 0; i < bmDataSplit.length; i++) {
+				  		
+				  		if (bmDataSplit[i] != "") {
+					  		var bmData = JSON.parse(bmDataSplit[i]);
+					  		
+					  		if (bmData.id == bmid) {
+					  			bmData.name = bmfn;
+				  				bmArray = bmData.array;
+					  			
+					  			bmFound = true;
+					  		}
+					  		
+					  		bmNewData += JSON.stringify(bmData) + ";\n";
+				  		}
+				  	}
+				  	
+				  	if (bmFound == false) {
+				  		bmArray = [];
+				  		bmNewData += JSON.stringify({id: bmid, name: bmfn, array: bmArray}) + ";\n";
+				  	}
+				  	
+				  	bmList.innerHTML = "";
+				  	
+				  	for (var i = 0; i < bmArray.length; i++) {
+				  		bmList.insertAdjacentHTML("beforeend", listItem);
+				  		bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
+				  		bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
+				  	}
+				  	
+				  	await fsData.writeFile(bmNewData);
+			  		return
+			  	case "file":
 			  		
-			  		if (bmData.id == bmid) {
-			  			bmData.name = bmf;
-			  			bmData.array = bmArray;
-			  			
-			  			bmFound = true;
+			  		bmPanel.remove();
+		    		bmOverlay.remove();
+		    		
+			  		document.body.append(filePanel, bmOverlay);
+			  		
+			  		fileList.innerHTML = "";
+			  		
+			  		for (var i = 0; i < bmDataSplit.length; i++) {
+				  		
+				  		if (bmDataSplit[i] != "") {
+					  		var bmData = JSON.parse(bmDataSplit[i]);
+					  		
+					  		fileList.insertAdjacentHTML("beforeend", listItem);
+					  		fileList.children.item(i).children.item(0).innerText = i + ":";
+					  		fileList.children.item(i).children.item(1).innerText = bmData.name;
+					  		fileList.children.item(i).children.item(1).scrollLeft = 10000;
+				  		}
 			  		}
 			  		
-			  		bmNewFile += JSON.stringify(bmData) + ";\n";
-		  		}
-		  	}
-		  	
-		  	if (bmFound == false) {
-		  		bmNewFile += JSON.stringify({id: bmid, name: bmf, array: bmArray}) + ";\n";
-		  	}
-		  	
-		  	await bmFile.writeFile(bmNewFile);
-		  },
-		  backgroundColor: '#f9f1d2',
-		  textColor: '#000',
+			  		bmVisible = false;
+			  		fileVisible = true;
+			  		return
+			    case "close":
+			    	
+			     	bmPanel.remove()
+		    		bmOverlay.remove()
+		    		
+		    		bmVisible = false;
+			      return
+	  		}
 			}
 		);
 		
-		saveSB.show();
-		
-		const loadSB = SideButton({
-		  text: 'loadBM',
-		  icon: 'my-icon',
-		  async onclick() {
-		  	
-		  	if (await bmFile.exists() == false) {
-		  		await fs(window.DATA_STORAGE).createFile("bookmark.json", "");
-		  	}
-		  	
-		  	const bmFileContent = await bmFile.readFile("utf8");
-		  	const bmSplit = bmFileContent.split(";\n");
-		  	
-		  	var bmNewFile = "";
-		  	var bmFound = false;
-		  	
-		  	var bmf = editorManager.activeFile.filename;
-		  	var bmid = editorManager.activeFile.id;
-		  	
-		  	for (var i = 0; i < bmSplit.length; i++) {
-		  		
-		  		if (bmSplit[i].startsWith("{")) {
-			  		var bmData = JSON.parse(bmSplit[i]);
+		bmList.addEventListener("click", async (e) => {
+				const target = e.target.closest("[data-action]");
+		  
+			  if (!target) {return};
+			  
+			  switch(target.dataset.action) {
+			  	case "select":
+			  		var line = parseInt(e.target.parentElement.children.item(0).innerText.slice(0, -1)) - 1;
 			  		
-			  		if (bmData.id == bmid) {
-			  			bmData.name = bmf;
-		  				bmArray = bmData.array;
-			  			
-			  			bmFound = true;
+			  		editorManager.editor.gotoLine(line);
+			  		return
+			  	case "erase":
+			  		var line = parseInt(e.target.parentElement.children.item(0).innerText.slice(0, -1)) - 1;
+			  		
+			  		var newArray = [];
+			  		
+			  		for (var i = 0; i < bmArray.length; i++) {
+			  			if (bmArray[i] != line) {
+			  				newArray.push(bmArray[i]);
+			  			}
 			  		}
 			  		
-			  		bmNewFile += JSON.stringify(bmData) + ";\n";
-		  		}
-		  	}
-		  	
-		  	if (bmFound == false) {
-		  		bmArray = [];
-		  		bmNewFile += JSON.stringify({id: bmid, name: bmf, array: bmArray}) + ";\n";
-		  	}
-		  	
-		  	await bmFile.writeFile(bmNewFile);
-		  },
-		  backgroundColor: '#f9f1d2',
-		  textColor: '#000',
+			  		bmArray = newArray;
+			  		
+			  		e.target.parentElement.parentElement.removeChild(e.target.parentElement);
+			  		return
+	  		}
 			}
 		);
 		
-		loadSB.show();
-  	
+		filePanelTop.addEventListener("click", async (e) => {
+				const target = e.target.closest("[data-action]");
+			  
+			  if (!target) {return};
+			  
+			  switch(target.dataset.action) {
+			  	case "close":
+			  		filePanel.remove()
+		    		bmOverlay.remove()
+			  		return
+		  	}
+			}
+		);
+		
+		fileList.addEventListener("click", async (e) => {
+				const target = e.target.closest("[data-action]");
+		  
+			  if (!target) {return};
+			  
+			  switch(target.dataset.action) {
+			  	case "erase":
+			  		var line = [parseInt(e.target.parentElement.children.item(0).innerText.slice(0, -1))][0];
+			  		
+			  		var bmDataRaw = await fsData.readFile("utf8");
+		  			var bmDataSplit = bmDataRaw.split(";\n");
+		  	
+		  			var bmNewData = "";
+				  	
+				  	for (var i = 0; i < bmDataSplit.length; i++) {
+				  		
+				  		if (bmDataSplit[i] != "") {
+				  			var bmData = JSON.parse(bmDataSplit[i]);
+				  			
+					  		if (i == line) {
+					  			continue;
+					  		}
+					  		
+					  		bmNewData += JSON.stringify(bmData) + ";\n";
+					  		continue;
+				  		}
+				  	}
+				  	
+				  	fileList.innerHTML = "";
+				  	
+				  	bmDataSplit = bmNewData.split(";\n");
+			  		
+			  		for (var i = 0; i < bmDataSplit.length; i++) {
+				  		
+				  		if (bmDataSplit[i] != "") {
+					  		var bmData = JSON.parse(bmDataSplit[i]);
+					  		
+					  		fileList.insertAdjacentHTML("beforeend", listItem);
+					  		fileList.children.item(i).children.item(0).innerText = i + ":";
+					  		fileList.children.item(i).children.item(1).innerText = bmData.name;
+					  		fileList.children.item(i).children.item(1).scrollLeft = 10000;
+				  		}
+			  		}
+				  	
+				  	await fsData.writeFile(bmNewData);
+			  		return
+	  		}
+			}
+		);
+		
   	const addSB = SideButton({
 		  text: 'addBM',
 		  icon: 'my-icon',
 		  onclick() {
-		  	const selection = editor.getSelectionRange();
+		  	var bmNew = editorManager.editor.getSelectionRange().start.row;
 		  	
-		  	if (bmArray.indexOf(selection.start.row) == -1) {
+		  	if (bmArray.indexOf(bmNew) == -1) {
 		  		var newArray = [];
-		  		var sr = selection.start.row;
 		  		
 		  		for (var i = 0; i < bmArray.length; i++) {
-		  			if (bmArray[i] < sr) {
-		  				newArray.push(bmArray[i])
-		  			} else {
-		  				break;
-		  			}
+		  			if (bmArray[i] >= bmNew) {break};
+		  			newArray.push(bmArray[i])
 		  		}
 		  		
-		    	newArray.push(sr);
+		    	newArray.push(bmNew);
 		    	
 		    	for (var i = newArray.length -1; i < bmArray.length; i++) {
 		    		newArray.push(bmArray[i]);
 		    	}
 		    	
 		    	bmArray = newArray;
+		    	
+		    	bmList.insertAdjacentHTML("beforeend", listItem);
+		    	
+		    	if (bmVisible) {
+		    		
+		    		for (var i = 0; i < bmArray.length; i++) {
+		    			bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
+				  		bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
+		    		}
+		    	}
 		  	}
 		  },
 		  backgroundColor: '#3ec440',
@@ -147,25 +340,20 @@ class AcodePlugin {
 		  text: 'showBM',
 		  icon: 'my-icon',
 		  onclick() {
-		  	var itemArray = [];
+		  	
+		  	if (fileVisible) {
+		  		filePanel.remove();
+		  		bmOverlay.remove();
+		  	}
+    		
+		  	document.body.append(bmPanel, bmOverlay);
 		  	
 		  	for (var i = 0; i < bmArray.length; i++) {
-		  		var bmi = bmArray[i];
-		  		itemArray.push([(bmi + 1) + ": " + editor.session.getLine(bmi), bmi]);
-		  	}
+    			bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
+		  		bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
+    		}
 		  	
-		  	const menu = ContextMenu('Bookmark List', {
-						top: 128,
-						left: 128,
-						items: itemArray,
-						onselect(action) {
-								editor.gotoLine(action);
-						},
-						onclick(hel, mouse) {}
-					}
-				);
-				
-				menu.show();
+		  	bmVisible = true;
 		  },
 		  backgroundColor: '#3e4dc4',
 		  textColor: '#000',
@@ -173,62 +361,40 @@ class AcodePlugin {
 		);
 		
 		showSB.show();
-		
-		const eraseSB = SideButton({
-		  text: 'eraseBM',
-		  icon: 'my-icon',
-		  onclick() {
-		    var itemArray = [];
-		    
-		  	for (var i = 0; i < bmArray.length; i++) {
-		  		const bmi = bmArray[i];
-		  		itemArray.push([(bmi + 1) + ": " + editor.session.getLine(bmi), bmi]);
-		  	}
-		  	
-		  	const menu = ContextMenu('Erase BookMark', {
-						top: 128,
-						left: 128,
-						items: itemArray,
-						onselect(action) {
-							var newBM = [];
-							
-							for (var i = 0; i < bmArray.length; i++) {
-								if (bmArray[i] != action) {
-									newBM.push(bmArray[i]);
-								}
-							}
-							
-							bmArray = newBM;
-						},
-						onclick(hel, mouse) {}
-					}
-				);
-				
-				menu.show();
-		  },
-		  backgroundColor: '#c43e3e',
-		  textColor: '#000',
-			}
-		);
-		
-		eraseSB.show();
   	
-		editor.on('change', (e, ins) => {
+		editorManager.editor.on('change', (e, ins) => {
+			
 		    if (e.start.row != e.end.row) {
+		    	var newArray = [];
+		    	
 		    	if (e.action == "insert") {
 			    	for (var i = 0; i < bmArray.length; i++) {
 			    		if (bmArray[i] > e.start.row) {
-			    			bmArray[i] += e.end.row - e.start.row;
+			    			newArray.push(bmArray[i] + (e.end.row - e.start.row));
+			    			continue;
 			    		}
+			    		newArray.push(bmArray[i]);
 			    	}
 		    	} else if (e.action == "remove") {
 		    		for (var i = 0; i < bmArray.length; i++) {
 			    		if (bmArray[i] > e.end.row) {
-			    			bmArray[i] -= e.end.row - e.start.row;
+			    			newArray.push(bmArray[i] - (e.end.row - e.start.row));
+			    			continue;
 			    		}
+			    		newArray.push(bmArray[i]);
 			    	}
 		    	}
+		    	
+		    	bmArray = newArray;
 		    }
+		    
+		    if (bmVisible) {
+		    		
+	    		for (var i = 0; i < bmArray.length; i++) {
+    				bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
+    				bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
+	    		}
+	    	}
 			}
 		);
   }
