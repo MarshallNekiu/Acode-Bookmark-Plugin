@@ -1,93 +1,82 @@
+.mnbm-window {
+  background: gray;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  height: 50%;
+  padding: 8px;
+  transform: translate(-50%, -50%);
 
-.bm {
-	
-	&-container {
-		
-		background: gray;
-		position: fixed;
-	  top: 50%;
-	  left: 50%;
-	  width: 50%;
-	  height: 50%;
-	  transform: translate(-50%, -50%);
-		
-		&-top {
-			
-			display: flex;
-			
-			> div {
-				
-				display: flex;
-				
-			}
-			
-			.bm {
-				
-				&-btn-close {
-					
-					margin-left: auto;
-					
-				}
-				
-			}
-			
-		}
-		
-		.bm {
-			
-			&-list {
-				
-				background: rgb(50,50,50);
-				height: 100%;
-				overflow-y: scroll;
-				list-style: none;
-				
-			}
-			
-			&-item-prefix {
-				
-				background: rgb(100, 100, 100);
-				color: rgb(190,188,229);
-				
-			}
-			
-			&-item-text {
-				
-				width: 100%;
-				background: rgb(75,75,75);
-				overflow-x: scroll;
-				//text-overflow: ellipsis;
-				display: inline-block;
-				text-wrap: nowrap;
-				
-			}
-			
-			&-btn-erase {
-			
-				margin-left: auto;
-				
-			}
-			
-			&-item {
-				
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				
-			}
-			
-		}
-		
-		button {
-		  
-	    &:active {
-	    	
-	    	transform: scale(0.9)
-	    	
-	    }
-	    
-		}
-		
-	}
-	
+  .mnbm-content {
+    height: 100%;
+    overflow: hidden;
+    
+    button {
+      padding: 2px;
+    }
+
+    p {
+      padding: 2px;
+    }
+
+    .mnbm-top {
+      display: flex;
+
+      .mnbm-left {
+        overflow-x: scroll;
+        display: flex;
+        
+        > button {
+          margin-right:8px;
+        }
+      }
+
+      .mnbm-close {
+        margin-left: auto;
+      }
+    }
+    
+    .mnbm-body {
+      height: 100%;
+      padding-top:4px;
+
+      .mnbm-container {
+        height: 100%;
+        overflow-y: scroll;
+        
+        .mnbm-list {
+        	padding-bottom: 24px;
+          margin-top: 0px;
+          list-style: none;
+
+          .mnbm-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            .mnbm-prefix {
+              color: black;
+            }
+
+            .mnbm-erase {
+              margin-left: auto;
+            }
+
+            .mnbm-text {
+              width:100%;
+              color: black;
+              background: #cccccc;
+              overflow-x: scroll;
+              display: inline-block;
+              text-wrap: nowrap;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.mnbm-overlay {
 }

@@ -1,210 +1,266 @@
 
+//Bookmark Automaton
+
 import plugin from '../plugin.json';
 import styles from './styles.scss';
 
 const fs = acode.require('fsOperation');
 const SideButton = acode.require('sideButton');
+const alert = acode.require("alert");
+
+var buffer = {}; //{ID: ARRAY}
+
+class BookmarkManager {
+	
+	constructor (bm) {
+		this.bookmark = bm;
+		this.panel = tag("section", {className: "mnbm-window"});
+		this.panel.innerHTML = `
+		  <div class="mnbm-content">
+		    <div class="mnbm-top">
+		      <div class="mnbm-left">
+		        <button class="mnbm-add" data-action="add"> Add </button>
+		        <button class="mnbm-save" data-action="save"> Save </button>
+		        <button class="mnbm-load" data-action="load"> Load </button>
+		        <button class="mnbm-file" data-action="file"> File </button>
+		      </div>
+		      <button class="mnbm-close" data-action="close"> Close </button>
+		    </div>
+		    <div class="mnbm-body">
+			    <div class="mnbm-container">
+			      <ul class="mnbm-list"> </ul>
+			    </div>
+		    </div>
+		  </div>
+		`;
+		this.panelTop = this.panel.querySelector(".mnbm-top");
+		this.list = this.panel.querySelector(".mnbm-list");
+		this.visible = false;
+	}
+	
+	addLine(ln) {
+		
+  	if (this.bookmark.array.indexOf(ln) == -1) {
+  		var newArray = [];
+  		
+  		for (var i = 0; i < this.bookmark.array.length; i++) {
+  			if (this.bookmark.array[i] >= ln) {break};
+  			newArray.push(this.bookmark.array[i])
+  		}
+  		
+    	newArray.push(ln);
+    	
+    	for (var i = newArray.length -1; i < this.bookmark.array.length; i++) {
+    		newArray.push(this.bookmark.array[i]);
+    	}
+    	
+    	this.bookmark.array = newArray;
+    	
+    	this.list.insertAdjacentHTML("beforeend", this.bookmark.listItem);
+    	
+    	if (this.visible) {
+    		
+    		for (var i = 0; i < this.bookmark.array.length; i++) {
+    			this.list.children.item(i).children.item(0).innerText = (this.bookmark.array[i] + 1) + ":";
+		  		this.list.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(this.bookmark.array[i]);
+    		}
+    	}
+  	}
+	}
+	
+	async reWrite() {
+		this.list.innerHTML = "";
+  	
+  	for (var i = 0; i < this.bookmark.array.length; i++) {
+  		this.list.insertAdjacentHTML("beforeend", this.bookmark.listItem);
+  		this.list.children.item(i).children.item(0).innerText = (this.bookmark.array[i] + 1) + ":";
+  		this.list.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(this.bookmark.array[i]);
+  	}
+	}
+	
+	async saveList(fsdt) {
+		var bmDataRaw = await fsdt.readFile("utf8");
+	 	var bmDataSplit = bmDataRaw.split(";\n");
+  	var bmNewData = "";
+  	var bmFound = false;
+  	
+  	var bmfn = (editorManager.activeFile?.location == null ? "" : editorManager.activeFile?.location) + editorManager.activeFile.filename;
+  	var bmid = editorManager.activeFile.id;
+  	
+  	for (var i = 0; i < bmDataSplit.length; i++) {
+  		
+  		if (bmDataSplit[i] != "") {
+	  		var bmData = JSON.parse(bmDataSplit[i]);
+	  		
+	  		if (bmData.id == bmid) {
+	  			bmData.name = bmfn;
+	  			bmData.array = this.bookmark.array;
+	  			
+	  			bmFound = true;
+	  		}
+	  		
+	  		bmNewData += JSON.stringify(bmData) + ";\n";
+  		}
+  	}
+  	
+  	if (bmFound == false) {
+  		bmNewData += JSON.stringify({id: bmid, name: bmfn, array: this.bookmark.array}) + ";\n";
+  	}
+  	
+  	await fsdt.writeFile(bmNewData);
+	}
+	
+	async loadList(fsdt) {
+		var bmDataRaw = await fsdt.readFile("utf8");
+  	var bmDataSplit = bmDataRaw.split(";\n");
+  	var bmNewData = "";
+  	var bmFound = false;
+  	
+  	var bmfn = (editorManager.activeFile?.location == null ? "" : editorManager.activeFile?.location) + editorManager.activeFile.filename;
+  	var bmid = editorManager.activeFile.id;
+  	
+  	for (var i = 0; i < bmDataSplit.length; i++) {
+  		
+  		if (bmDataSplit[i] != "") {
+	  		var bmData = JSON.parse(bmDataSplit[i]);
+	  		
+	  		if (bmData.id == bmid) {
+	  			bmData.name = bmfn;
+  				this.bookmark.array = bmData.array;
+	  			
+	  			bmFound = true;
+	  		}
+	  		
+	  		bmNewData += JSON.stringify(bmData) + ";\n";
+  		}
+  	}
+  	
+  	if (bmFound == false) {
+  		this.bookmark.array = [];
+  		bmNewData += JSON.stringify({id: bmid, name: bmfn, array: []}) + ";\n";
+  	}
+  	
+  	await fsdt.writeFile(bmNewData);
+	}
+}
+
+class DataManager {
+	
+	constructor (bm) {
+		this.bookmark = bm;
+		this.panel = tag("section", {className: "mnbm-window"});
+		this.panel.innerHTML = `
+		  <div class="mnbm-content">
+		    <div class="mnbm-top">
+		      <button class="mnbm-close" data-action="close"> Close </button>
+		    </div>
+		    <div class="mnbm-body">
+			    <div class="mnbm-container">
+			      <ul class="mnbm-list"> </ul>
+			    </div>
+		    </div>
+		  </div>
+		`;
+		this.panelTop = this.panel.querySelector(".mnbm-top");
+		this.list = this.panel.querySelector(".mnbm-list");
+		this.visible = false;
+	}
+	
+	async reWrite(fsdt) {
+		var bmDataRaw = await fsdt.readFile("utf8");
+  	var bmDataSplit = bmDataRaw.split(";\n");
+  	
+		this.list.innerHTML = "";
+		  		
+		for (var i = 0; i < bmDataSplit.length; i++) {
+  		
+  		if (bmDataSplit[i] != "") {
+	  		var bmData = JSON.parse(bmDataSplit[i]);
+	  		
+	  		this.list.insertAdjacentHTML("beforeend", this.bookmark.listItem);
+	  		this.list.children.item(i).children.item(0).innerText = i + ":";
+	  		this.list.children.item(i).children.item(1).innerText = bmData.name;
+	  		this.list.children.item(i).children.item(1).scrollLeft = 10000;
+  		}
+		}
+	}
+}
 
 class AcodePlugin {
 	
+	constructor () {
+		this.file = editorManager.activeFile;
+		this.array = [];
+		this.listItem = `
+	    <li class="mnbm-item">
+	      <p class="mnbm-prefix" data-acton="select"> </p>
+	      <p class="mnbm-text" data-action="select"> </p>
+	      <button class="mnbm-erase" data-action="erase"> Erase </button>
+	    </li>
+		`;
+	}
+	
 	async init() {
   	const fsData = await fs(window.DATA_STORAGE + "bookmark.json");
+  	const fsExist = async () => {
+  		if (await fsData.exists() == false) {
+		  		await fs(window.DATA_STORAGE).createFile("bookmark.json", "");
+		  	}
+  	};
+  	
   	const style = document.createElement('style');
 	  style.type = 'text/css';
 	  style.innerHTML = styles;
 		document.head.append(style);
 	  
-		const bmPanel = tag("section", { className: "bm-container" });
-		const bmOverlay = tag("div", { className: "bm-overlay" });
+		const overlay = tag("div", {className: "mnbm-overlay"});
+	  const bmManager = new BookmarkManager(this);
+	  const dtManager = new DataManager(this);
 		
-		bmPanel.innerHTML = `
-		  <div class="bm-container-top">
-		    <div>
-		  	 <button class="bm-btn-add" data-action="add"> Add </button>
-		      <button class="bm-btn-save" data-action="save"> Save </button>
-		      <button class="bm-btn-load" data-action="load"> Load </button>
-		      <button class="bm-btn-file" data-action="file"> File </button>
-		    </div>
-	      <button class="bm-btn-close" data-action="close"> Close </button>
-		  </div>
-		  <ul class="bm-list"></ul>
-		`;
-		
-		const bmPanelTop = bmPanel.querySelector(".bm-container-top");
-		const bmList = bmPanel.querySelector(".bm-list");
-		
-		const filePanel = tag("section", { className: "bm-container" });
-		
-		filePanel.innerHTML = `
-		  <div class="bm-container-top">
-	      <button class="bm-btn-close" data-action="close"> Close </button>
-		  </div>
-		  <ul class="bm-list"></ul>
-		`;
-		
-		const filePanelTop = filePanel.querySelector(".bm-container-top");
-		const fileList = filePanel.querySelector(".bm-list");
-		
-		const listItem = `
-			<li class="bm-item">
-				<p class="bm-item-prefix"></p>
-	  		<p class="bm-item-text" data-action="select"></p>
-	      <button class="bm-btn-erase" data-action="erase"> Erase </button>
-	     </li>
-		`;
-		
-		var bmArray = [];
-		var bmVisible = false;
-		var fileVisible = false;
-		
-		bmPanelTop.addEventListener("click", async (e) => {
-			const target = e.target.closest("[data-action]");
-				
+		bmManager.panelTop.addEventListener("click", async (e) => {
+				const target = e.target.closest("[data-action]");
 			  if (!target) {return};
-				
-			  if (await fsData.exists() == false) {
-		  		await fs(window.DATA_STORAGE).createFile("bookmark.json", "");
-		  	}
+			  await fsExist();
 		  	
 		  	var bmDataRaw = await fsData.readFile("utf8");
 		  	var bmDataSplit = bmDataRaw.split(";\n");
 			  
 			  switch(target.dataset.action) {
 			  	case "add":
-				  	var bmNew = editorManager.editor.getSelectionRange().start.row;
-				  	
-				  	if (bmArray.indexOf(bmNew) == -1) {
-				  		var newArray = [];
-				  		
-				  		for (var i = 0; i < bmArray.length; i++) {
-				  			if (bmArray[i] >= bmNew) {break};
-				  			newArray.push(bmArray[i])
-				  		}
-				  		
-				    	newArray.push(bmNew);
-				    	
-				    	for (var i = newArray.length -1; i < bmArray.length; i++) {
-				    		newArray.push(bmArray[i]);
-				    	}
-				    	
-				    	bmArray = newArray;
-				    	
-				    	bmList.insertAdjacentHTML("beforeend", listItem);
-				    	
-				    	if (bmVisible) {
-				    		
-				    		for (var i = 0; i < bmArray.length; i++) {
-				    			bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
-						  		bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
-				    		}
-				    	}
-				  	}
+			  		bmManager.addLine(editorManager.editor.getSelectionRange().start.row);
 				  	return;
 			  	case "save":
-				  	var bmNewData = "";
-				  	var bmFound = false;
-				  	
-				  	var bmfn = (editorManager.activeFile?.location == null ? "" : editorManager.activeFile?.location) + editorManager.activeFile.filename;
-				  	var bmid = editorManager.activeFile.id;
-				  	
-				  	for (var i = 0; i < bmDataSplit.length; i++) {
-				  		
-				  		if (bmDataSplit[i] != "") {
-					  		var bmData = JSON.parse(bmDataSplit[i]);
-					  		
-					  		if (bmData.id == bmid) {
-					  			bmData.name = bmfn;
-					  			bmData.array = bmArray;
-					  			
-					  			bmFound = true;
-					  		}
-					  		
-					  		bmNewData += JSON.stringify(bmData) + ";\n";
-				  		}
-				  	}
-				  	
-				  	if (bmFound == false) {
-				  		bmNewData += JSON.stringify({id: bmid, name: bmfn, array: bmArray}) + ";\n";
-				  	}
-				  	
-				  	await fsData.writeFile(bmNewData);
+			  		await bmManager.saveList(fsData);
 			  		return
 			  	case "load":
-				  	var bmNewData = "";
-				  	var bmFound = false;
-				  	
-				  	var bmfn = (editorManager.activeFile?.location == null ? "" : editorManager.activeFile?.location) + editorManager.activeFile.filename;
-				  	var bmid = editorManager.activeFile.id;
-				  	
-				  	for (var i = 0; i < bmDataSplit.length; i++) {
-				  		
-				  		if (bmDataSplit[i] != "") {
-					  		var bmData = JSON.parse(bmDataSplit[i]);
-					  		
-					  		if (bmData.id == bmid) {
-					  			bmData.name = bmfn;
-				  				bmArray = bmData.array;
-					  			
-					  			bmFound = true;
-					  		}
-					  		
-					  		bmNewData += JSON.stringify(bmData) + ";\n";
-				  		}
-				  	}
-				  	
-				  	if (bmFound == false) {
-				  		bmArray = [];
-				  		bmNewData += JSON.stringify({id: bmid, name: bmfn, array: bmArray}) + ";\n";
-				  	}
-				  	
-				  	bmList.innerHTML = "";
-				  	
-				  	for (var i = 0; i < bmArray.length; i++) {
-				  		bmList.insertAdjacentHTML("beforeend", listItem);
-				  		bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
-				  		bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
-				  	}
-				  	
-				  	await fsData.writeFile(bmNewData);
+			  		await bmManager.loadList(fsData);
+			  		await bmManager.reWrite();
 			  		return
 			  	case "file":
 			  		
-			  		bmPanel.remove();
-		    		bmOverlay.remove();
+			  		bmManager.panel.remove();
+		    		overlay.remove();
 		    		
-			  		document.body.append(filePanel, bmOverlay);
+			  		document.body.append(dtManager.panel, overlay);
 			  		
-			  		fileList.innerHTML = "";
+			  		await dtManager.reWrite(fsData);
 			  		
-			  		for (var i = 0; i < bmDataSplit.length; i++) {
-				  		
-				  		if (bmDataSplit[i] != "") {
-					  		var bmData = JSON.parse(bmDataSplit[i]);
-					  		
-					  		fileList.insertAdjacentHTML("beforeend", listItem);
-					  		fileList.children.item(i).children.item(0).innerText = i + ":";
-					  		fileList.children.item(i).children.item(1).innerText = bmData.name;
-					  		fileList.children.item(i).children.item(1).scrollLeft = 10000;
-				  		}
-			  		}
-			  		
-			  		bmVisible = false;
-			  		fileVisible = true;
+			  		bmManager.visible = false;
+			  		dtManager.visible = true;
 			  		return
 			    case "close":
 			    	
-			     	bmPanel.remove()
-		    		bmOverlay.remove()
+			     	bmManager.panel.remove()
+		    		overlay.remove()
 		    		
-		    		bmVisible = false;
+		    		bmManager.visible = false;
 			      return
 	  		}
 			}
 		);
 		
-		bmList.addEventListener("click", async (e) => {
+		bmManager.list.addEventListener("click", async (e) => {
 				const target = e.target.closest("[data-action]");
-		  
 			  if (!target) {return};
 			  
 			  switch(target.dataset.action) {
@@ -218,13 +274,13 @@ class AcodePlugin {
 			  		
 			  		var newArray = [];
 			  		
-			  		for (var i = 0; i < bmArray.length; i++) {
-			  			if (bmArray[i] != line) {
-			  				newArray.push(bmArray[i]);
+			  		for (var i = 0; i < this.array.length; i++) {
+			  			if (this.array[i] != line) {
+			  				newArray.push(this.array[i]);
 			  			}
 			  		}
 			  		
-			  		bmArray = newArray;
+			  		this.array = newArray;
 			  		
 			  		e.target.parentElement.parentElement.removeChild(e.target.parentElement);
 			  		return
@@ -232,23 +288,22 @@ class AcodePlugin {
 			}
 		);
 		
-		filePanelTop.addEventListener("click", async (e) => {
+		dtManager.panelTop.addEventListener("click", async (e) => {
 				const target = e.target.closest("[data-action]");
-			  
 			  if (!target) {return};
 			  
 			  switch(target.dataset.action) {
 			  	case "close":
-			  		filePanel.remove()
-		    		bmOverlay.remove()
+			  		dtManager.panel.remove()
+		    		overlay.remove()
+		    		dtManager.visible = false;
 			  		return
 		  	}
 			}
 		);
 		
-		fileList.addEventListener("click", async (e) => {
+		dtManager.list.addEventListener("click", async (e) => {
 				const target = e.target.closest("[data-action]");
-		  
 			  if (!target) {return};
 			  
 			  switch(target.dataset.action) {
@@ -274,7 +329,7 @@ class AcodePlugin {
 				  		}
 				  	}
 				  	
-				  	fileList.innerHTML = "";
+				  	dtManager.list.innerHTML = "";
 				  	
 				  	bmDataSplit = bmNewData.split(";\n");
 			  		
@@ -283,10 +338,10 @@ class AcodePlugin {
 				  		if (bmDataSplit[i] != "") {
 					  		var bmData = JSON.parse(bmDataSplit[i]);
 					  		
-					  		fileList.insertAdjacentHTML("beforeend", listItem);
-					  		fileList.children.item(i).children.item(0).innerText = i + ":";
-					  		fileList.children.item(i).children.item(1).innerText = bmData.name;
-					  		fileList.children.item(i).children.item(1).scrollLeft = 10000;
+					  		dtManager.list.insertAdjacentHTML("beforeend", this.listItem);
+					  		dtManager.list.children.item(i).children.item(0).innerText = i + ":";
+					  		dtManager.list.children.item(i).children.item(1).innerText = bmData.name;
+					  		dtManager.list.children.item(i).children.item(1).scrollLeft = 10000;
 				  		}
 			  		}
 				  	
@@ -300,31 +355,34 @@ class AcodePlugin {
 		  text: 'addBM',
 		  icon: 'my-icon',
 		  onclick() {
+				
+		  	this.file.isUnsaved = true;
+		  	
 		  	var bmNew = editorManager.editor.getSelectionRange().start.row;
 		  	
-		  	if (bmArray.indexOf(bmNew) == -1) {
+		  	if (this.array.indexOf(bmNew) == -1) {
 		  		var newArray = [];
 		  		
-		  		for (var i = 0; i < bmArray.length; i++) {
-		  			if (bmArray[i] >= bmNew) {break};
-		  			newArray.push(bmArray[i])
+		  		for (var i = 0; i < this.array.length; i++) {
+		  			if (this.array[i] >= bmNew) {break};
+		  			newArray.push(this.array[i])
 		  		}
 		  		
 		    	newArray.push(bmNew);
 		    	
-		    	for (var i = newArray.length -1; i < bmArray.length; i++) {
-		    		newArray.push(bmArray[i]);
+		    	for (var i = newArray.length -1; i < this.array.length; i++) {
+		    		newArray.push(this.array[i]);
 		    	}
 		    	
-		    	bmArray = newArray;
+		    	this.array = newArray;
 		    	
-		    	bmList.insertAdjacentHTML("beforeend", listItem);
+		    	bmManager.list.insertAdjacentHTML("beforeend", this.listItem);
 		    	
-		    	if (bmVisible) {
+		    	if (bmManager.visible) {
 		    		
-		    		for (var i = 0; i < bmArray.length; i++) {
-		    			bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
-				  		bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
+		    		for (var i = 0; i < this.array.length; i++) {
+		    			bmManager.list.children.item(i).children.item(0).innerText = (this.array[i] + 1) + ":";
+				  		bmManager.list.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(this.array[i]);
 		    		}
 		    	}
 		  	}
@@ -341,19 +399,20 @@ class AcodePlugin {
 		  icon: 'my-icon',
 		  onclick() {
 		  	
-		  	if (fileVisible) {
-		  		filePanel.remove();
-		  		bmOverlay.remove();
+		  	if (dtManager.visible) {
+		  		dtManager.panel.remove();
+		  		overlay.remove();
+		  		dtManager.visible = false;
 		  	}
     		
-		  	document.body.append(bmPanel, bmOverlay);
+		  	document.body.append(bmManager.panel, overlay);
 		  	
-		  	for (var i = 0; i < bmArray.length; i++) {
-    			bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
-		  		bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
-    		}
+		  	bmManager.visible = true;
 		  	
-		  	bmVisible = true;
+		  	for (var i = 0; i < this.array.length; i++) {
+    			bmManager.list.children.item(i).children.item(0).innerText = (this.array[i] + 1) + ":";
+		  		bmManager.list.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(this.array[i]);
+		  	}
 		  },
 		  backgroundColor: '#3e4dc4',
 		  textColor: '#000',
@@ -361,6 +420,33 @@ class AcodePlugin {
 		);
 		
 		showSB.show();
+		
+		editorManager.on("switch-file", (e) => {
+				this.file = e;
+			}
+		);
+		/*
+		editorManager.on("rename-file", (e) => {
+				alert("rename", e.id + " : " + e.location + e.filename, () => {});
+			}
+		);
+		editorManager.on("new-file", (e) => {
+				alert("new", e.id + " : " + e.location + e.filename, () => {});
+			}
+		);
+		editorManager.on("remove-file", (e) => {
+				alert("remove", e.id + " : " + e.location + e.filename, () => {});
+			}
+		);
+		editorManager.on("file-loaded", (e) => {
+				alert("file-loaded", e.id + " : " + e.location + e.filename, () => {});
+			}
+		);
+		editorManager.on("save-file", (e) => {
+				alert("save-file", e.id + " : " + e.location + e.filename, () => {});
+			}
+		);
+		*/
   	
 		editorManager.editor.on('change', (e, ins) => {
 			
@@ -368,31 +454,30 @@ class AcodePlugin {
 		    	var newArray = [];
 		    	
 		    	if (e.action == "insert") {
-			    	for (var i = 0; i < bmArray.length; i++) {
-			    		if (bmArray[i] > e.start.row) {
-			    			newArray.push(bmArray[i] + (e.end.row - e.start.row));
+			    	for (var i = 0; i < this.array.length; i++) {
+			    		if (this.array[i] > e.start.row) {
+			    			newArray.push(this.array[i] + (e.end.row - e.start.row));
 			    			continue;
 			    		}
-			    		newArray.push(bmArray[i]);
+			    		newArray.push(this.array[i]);
 			    	}
 		    	} else if (e.action == "remove") {
-		    		for (var i = 0; i < bmArray.length; i++) {
-			    		if (bmArray[i] > e.end.row) {
-			    			newArray.push(bmArray[i] - (e.end.row - e.start.row));
+		    		for (var i = 0; i < this.array.length; i++) {
+			    		if (this.array[i] > e.end.row) {
+			    			newArray.push(this.array[i] - (e.end.row - e.start.row));
 			    			continue;
 			    		}
-			    		newArray.push(bmArray[i]);
+			    		newArray.push(this.array[i]);
 			    	}
 		    	}
 		    	
-		    	bmArray = newArray;
+		    	this.array = newArray;
 		    }
-		    
-		    if (bmVisible) {
-		    		
-	    		for (var i = 0; i < bmArray.length; i++) {
-    				bmList.children.item(i).children.item(0).innerText = (bmArray[i] + 1) + ":";
-    				bmList.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(bmArray[i]);
+		  	
+		    if (bmManager.visible) {
+	    		for (var i = 0; i < this.array.length; i++) {
+    				bmManager.list.children.item(i).children.item(0).innerText = (this.array[i] + 1) + ":";
+    				bmManager.list.children.item(i).children.item(1).innerText = editorManager.editor.session.getLine(this.array[i]);
 	    		}
 	    	}
 			}
