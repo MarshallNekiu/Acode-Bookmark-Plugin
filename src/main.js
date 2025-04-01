@@ -24,7 +24,7 @@ import plugin from '../plugin.json';
 import styles from './styles.scss';
 import BookmarkManager from './bookmark_manager.js';
 import DataManager from './data_manager';
-import Debugger from './debugger.js';
+//import Debugger from './debugger.js';
 
 const fs = acode.require('fsOperation');
 const SideButton = acode.require('sideButton');
@@ -42,7 +42,7 @@ class BookmarkPlugin {
 		this.overlay = tag("div", {className: "mnbm-overlay"});
 		this.bmManager = new BookmarkManager();
 		this.dtManager = new DataManager();
-		this.debugManager = new Debugger();this.addSB;
+		//this.debugManager = new Debugger();this.addSB;
 		this.showSB;
 	}
 	
@@ -82,10 +82,9 @@ class BookmarkPlugin {
 	  style.innerHTML = styles;
 		document.head.append(style);
 		
-		const [overlay, dtManager, debugManager] = [this.overlay, this.dtManager, this.debugManager];
-		const bmManager = this.bmManager;
+		const [overlay, bmManager, dtManager] = [this.overlay, this.bmManager, this.dtManager];
 		
-		bmManager.setList[this.array]
+		bmManager.setList(this.array);
   	
   	this.addSB = SideButton({
 		  text: 'addBM',
@@ -108,7 +107,7 @@ class BookmarkPlugin {
 		  	self.addPanel(bmManager.panel);
 		  	self.bmManager.visible = true;
 	  		dtManager.visible = false;
-		  	debugManager.visible = false;
+		  	//debugManager.visible = false;
 		  	bmManager.writeList([...self.array]);
 		  },
 		  backgroundColor: '#3e4dc4',
@@ -116,7 +115,7 @@ class BookmarkPlugin {
 			}
 		);
 		this.showSB.show();
-		
+		/*
 		const debugSB = SideButton({
 		  text: 'debug',
 		  icon: 'my-icon',
@@ -131,7 +130,7 @@ class BookmarkPlugin {
 			}
 		);
 		debugSB.show();
-		
+		*/
 		bmManager.panelTop.addEventListener("click", async (e) => {
 			const target = e.target.closest("[data-action]");
 		  if (!target) return;
@@ -208,7 +207,7 @@ class BookmarkPlugin {
 		  		return
   		}
 		});
-		
+		/*
 		debugManager.panelTop.addEventListener("click", (e) => {
 			const target = e.target.closest("[data-action]");
 		  if (!target) return;
@@ -243,21 +242,21 @@ class BookmarkPlugin {
 			  	return;
 		  }
 	  });
-	  
+	  */
 		editorManager.on("new-file", (e) => {
-			debugManager.log("new-file: " + e.id + " : " + e.filename);
+			//debugManager.log("new-file: " + e.id + " : " + e.filename);
 			this.buffer[e.id] = [...(data.file[e.id] ?? {array: []}).array];
 		});
 		
 		editorManager.on("file-loaded", (e) => {
-			debugManager.log("file-loaded: " + e.id + " : " + e.filename);
+			//debugManager.log("file-loaded: " + e.id + " : " + e.filename);
 			this.array = [...(this.data.file[e.id] ?? {array: []}).array];
 			bmManager.setList(this.array);
   		this.notify("Bookmark loaded");
 		});
 		
 		editorManager.on("switch-file", async (e) => {
-			debugManager.log(`switch-file: ${this.file.filename} => ${e.filename}`);
+			//debugManager.log(`switch-file: ${this.file.filename} => ${e.filename}`);
 			this.buffer[this.file.id] = [...this.array];
 			this.array = [...this.buffer[e.id]];
 			bmManager.setList([...this.array]);
@@ -266,17 +265,17 @@ class BookmarkPlugin {
 		});
 		
 		editorManager.on("rename-file", (e) => {
-			debugManager.log("rename-file: " + e.id + " : " + e.filename);
+			//debugManager.log("rename-file: " + e.id + " : " + e.filename);
 		});
 		
 		editorManager.on("save-file", async (e) => {
-			debugManager.log("save-file: " + e.id + " : " + e.filename);
+			//debugManager.log("save-file: " + e.id + " : " + e.filename);
 			await this.saveData();
 			this.notify("Bookmark saved");
 		});
 		
 		editorManager.on("remove-file", (e) => {
-			debugManager.log("remove-file: " + e.id + " : " + e.filename);
+			//debugManager.log("remove-file: " + e.id + " : " + e.filename);
 			if (this.buffer[e.id]) delete this.buffer[e.id];
 		});
 		
@@ -301,7 +300,7 @@ class BookmarkPlugin {
 		    	}
 	    	}
 	    	this.array = newArray;
-	    	debugManager.log(JSON.stringify(e));
+	    	//debugManager.log(JSON.stringify(e));
 	    }
 	    if (bmManager.visible) bmManager.writeList(this.array);
 		});
@@ -310,10 +309,10 @@ class BookmarkPlugin {
   }
   
   async destroy() {
-    this.style.remove();
-    if (this.getPanel()) this.removePanel();
     this.addSB.hide();
     this.showBM.hide();
+    if (this.getPanel()) this.removePanel();
+    this.style.remove();
   }
   
   notify(x) {
@@ -364,8 +363,8 @@ class BookmarkPlugin {
 	
 	async saveData() {
 		this.data.file[this.file.id] = {name: "-1://" + this.file.filename, array: [...this.array]};
-		//if (this.array.length == 0) delete this.data.file[this.file.id];
-		//if (dtManager.visible) dtManager.reLoad(this.data.file);
+		if (this.array.length == 0) delete this.data.file[this.file.id];
+		if (this.dtManager.visible) this.dtManager.reLoad(this.data.file);
   	await this.fsData.writeFile(JSON.stringify(this.data));
 	}
 	
