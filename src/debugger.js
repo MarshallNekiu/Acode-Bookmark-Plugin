@@ -6,6 +6,12 @@ export default class Debugger {
 		this.panel.innerHTML = `
 		  <div class="mnbm-content">
 		    <div class="mnbm-top">
+		      <div class="mnbm-left">
+		        <button class="mnbm-debug-data" data-action="data"> Data </button>
+		        <button class="mnbm-debug-buffer" data-action="buffer"> Buffer </button>
+		        <button class="mnbm-debug-file" data-action="file"> File </button>
+		        <button class="mnbm-debug-array" data-action="array"> Array </button>
+		      </div>
 		      <button class="mnbm-close" data-action="close"> Close </button>
 		    </div>
 		    <div class="mnbm-body">
@@ -21,33 +27,26 @@ export default class Debugger {
 	}
 	
 	log(x) {
-		var listItem = `
+		const listItem = `
 	    <li class="mnbm-item">
 	      <p class="mnbm-prefix" data-acton="select"> </p>
 	      <p class="mnbm-text" data-action="select"> </p>
 	      <button class="mnbm-erase" data-action="erase"> Erase </button>
 	    </li>
 		`;
-		
 		this.list.insertAdjacentHTML("beforeend", listItem);
-		this.list.lastElementChild.children.item(0).innerText = (this.list.children.length - 1) + ":";
+		this.list.lastElementChild.firstElementChild.innerText = (this.list.childElementCount - 1) + ":";
 		this.list.lastElementChild.children.item(1).innerText = x;
 	}
 	
-	rePrefix() {
-		var chn = this.list.children;
-		for (var i = 0; i < chn.length; i++) {
-			chn.item(i).children.item(0).innerText = i + ":";
-		}
-	}
-	
-	unLog(idx) {
-		this.list.children.item(idx).remove();
-		this.rePrefix();
-	}
-	
-	unLogItem(itm) {
+	unLog(itm) {
+		let e = itm.nextElementSibling;
+		let i = parseInt(itm.firstElementChild.innerText.slice(0, -1));
 		itm.remove();
-		this.rePrefix();
+		while (e) {
+			e.firstElementChild.innerText = i + ":";
+			e = e.nextElementSibling;
+			i += 1;
+		}
 	}
 }

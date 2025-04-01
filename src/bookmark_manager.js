@@ -27,27 +27,55 @@ export default class BookmarkManager {
 	}
 	
 	addLine(ln, idx) {
-		var listItem = `
+		const listItem = `
 	    <li class="mnbm-item">
 	      <p class="mnbm-prefix" data-acton="select"> </p>
 	      <p class="mnbm-text" data-action="select"> </p>
 	      <button class="mnbm-erase" data-action="erase"> Erase </button>
 	    </li>
 		`;
-		var last = this.list.children.length;
+		const last = this.list.childElementCount;
   	this.list.insertAdjacentHTML("beforeend", listItem);
   	this.setLine(last, ln);
   	if (idx != last) this.moveItem(last, idx); 
 	}
 	
 	setLine(idx, ln) {
-		var chn = this.list.children.item(idx).children;
+		const chn = this.list.children.item(idx).children;
 		chn.item(0).innerText = (ln + 1) + ":";
 		chn.item(1).innerText = editorManager.activeFile.session.getLine(ln);
 	}
 	
+	setItem(itm, ln) {
+		const chn = itm.children;
+		chn.item(0).innerText = (ln + 1) + ":";
+		chn.item(1).innerText = editorManager.activeFile.session.getLine(ln);
+	}
+	
+	setList(array) {
+		var newHTML = "";
+		for (let i = 0; i < array.length; i++) {
+			newHTML += `
+				<li class="mnbm-item">
+					<p class="mnbm-prefix" data-acton="select"> </p>
+					<p class="mnbm-text" data-action="select"> </p>
+					<button class="mnbm-erase" data-action="erase"> Erase </button>
+				</li>
+			`;
+		}
+		this.list.innerHTML = newHTML;
+		if (this.visible) this.writeList([...array]);
+	}
+	
+	writeList(array) {
+		const chn = this.list.children;
+		for (let i = 0; i < array.length; i++) {
+			this.setItem(chn.item(i), array[i]);
+		}
+	}
+	
 	moveItem(bgn, fnsh) {
-		var chn = this.list.children;
+		const chn = this.list.children;
 		this.list.insertBefore(chn.item(bgn), chn.item(fnsh));
 	}
 	

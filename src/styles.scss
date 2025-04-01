@@ -1,3 +1,4 @@
+
 .mnbm-window {
   background: gray;
   position: fixed;
@@ -14,6 +15,10 @@
     
     button {
       padding: 2px;
+      
+      &:active {
+      	transform: scale(90%);
+      }
     }
 
     p {
@@ -87,7 +92,6 @@
   left: 50%;
   transform: translate(-50%, -50%);
   
-  //animation: <keyframes-name> <duration> <timing-function> <delay> <iteration-count> <direction> <fill-mode> <play-state>;
   animation: off 1s ease-in;
   
   @keyframes off {

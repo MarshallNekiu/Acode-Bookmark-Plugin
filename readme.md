@@ -18,3 +18,4 @@ Manipulation of indentation over a bookmark cause unexpected behavior on its pos
 
 - **v1.0.2**: [Bookmark First Release.](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.0.2).
 - **v1.1.0**: [Bookmark Simple HTML.](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.1.0).
+- **v1.2.0**: [Bookmark Automaton](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.1.0).
