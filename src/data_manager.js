@@ -3,12 +3,12 @@ export default class DataManager {
 	
 	constructor () {
 		this.panel = tag("section", {className: "mnbm-window"});
+//		      <div class="mnbm-left">
+//		        <button class="mnbm-check-files" data-action="check-files"> CheckFiles </button>
+//		      </div>
 		this.panel.innerHTML = `
 		  <div class="mnbm-content">
 		    <div class="mnbm-top">
-		      <div class="mnbm-left">
-		        <button class="mnbm-check-files" data-action="check-files"> CheckFiles </button>
-		      </div>
 		      <button class="mnbm-close" data-action="close"> Close </button>
 		    </div>
 		    <div class="mnbm-body">

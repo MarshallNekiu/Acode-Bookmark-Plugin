@@ -84,6 +84,7 @@
 }
 
 .mnbm-overlay {
+	
 }
 
 .mnbm-notification {
@@ -98,7 +99,7 @@
   	0% {
   		top: 80%;
   		color: #ffffff;
-  		background: #000000;;
+  		background: #000000;
   	}
   	100% {
   		top: 90%;
@@ -106,4 +107,8 @@
   		background: #00000000;
   	}
   }
+}
+
+.mnbm-gutter {
+	background: #2348ea45;
 }
