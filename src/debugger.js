@@ -20,6 +20,7 @@ export default class Debugger {
 			    </div>
 		    </div>
 		  </div>
+  		<div class="mnbm-bg"> </div>
 		`;
 		this.panelTop = this.panel.querySelector(".mnbm-top");
 		this.list = this.panel.querySelector(".mnbm-list");
@@ -31,7 +32,7 @@ export default class Debugger {
 	    <li class="mnbm-item">
 	      <p class="mnbm-prefix" data-acton="select"> </p>
 	      <p class="mnbm-text" data-action="select"> </p>
-	      <button class="mnbm-erase" data-action="erase"> Erase </button>
+	      <button class="mnbm-erase" data-action="erase"> X </button>
 	    </li>
 		`;
 		this.list.insertAdjacentHTML("beforeend", listItem);

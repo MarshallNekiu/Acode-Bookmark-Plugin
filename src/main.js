@@ -24,6 +24,7 @@ import BookmarkManager from './bookmark_manager.js';
 import DataManager from './data_manager';
 import Debugger from './debugger.js';
 
+const settings = acode.require("settings");
 const fs = acode.require('fsOperation');
 const SideButton = acode.require('sideButton');
 const alert = acode.require("alert");
@@ -46,15 +47,28 @@ class BookmarkPlugin {
 		this.addSB;
 		this.showSB;
 		this.gutter = [];
+		this.inputRequest = {pressed: false, origin: {x: 0, y: 0}}
+		if (!settings.value[plugin.id]) {
+        settings.value[plugin.id] = {
+        	sideButton: true,
+          showBMCommand: "B",
+          toggleBMCommand: "T",
+          prevBMCommand: "J",
+          nextBMCommand: "L"
+        };
+        settings.update(false);
+        //alert("BookmarkPlugin", "FirstInit", () => {});
+    }
 	}
 	
 	async init() {
 		const self = this;
+		const link = {ready: false};
 		const readySB = SideButton({
-		  text: 'BBM',
+		  text: 'readyBM',
 		  icon: 'my-icon',
 		  onclick() {
-		  	self.ready();
+		  	self.ready(link);
 		  	readySB.hide();
 		  },
 		  backgroundColor: '#3e4dc4',
@@ -62,9 +76,131 @@ class BookmarkPlugin {
 			}
 		);
 		readySB.show();
+		
+		const rF = () => {
+			//alert("rf", "");
+			editorManager.editor.commands.removeCommand("readyBookmark");
+			if (link.ready) {
+				settings.off("update", rF);
+				//alert("rfend", "");
+				return
+			}
+			if (self.plugSettings.showBMCommand.length > 0) {
+				editorManager.editor.commands.addCommand({
+			    name: "readyBookmark",
+			    description: "",
+			    bindKey: { win: "Ctrl-" + self.plugSettings.showBMCommand[0] },
+			    exec: () => {
+			      self.ready(link);
+			      readySB.hide();
+			      editorManager.editor.commands.removeCommand("readyBookmark");
+			    	settings.off("update", rF);
+			    },
+			  });
+			}
+		};
+		rF();
+		settings.on("update", rF);
+		
 	}
 	
-	async ready() {
+	updateSettings() {
+		const self = this;
+		if (self.plugSettings.sideButton) {
+			self.showSB.show();
+		} else {
+			self.showSB.hide();
+		};
+		
+		editorManager.editor.commands.removeCommand("showBookmarkList");
+		if (self.plugSettings.showBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+		    name: "showBookmarkList",
+		    description: "",
+		    bindKey: { win: "Ctrl-" + self.plugSettings.showBMCommand[0] },
+		    exec: () => {
+		    	if (self.getPanel()) {
+		    		self.removePanel();
+		    		self.bmManager.visible = false;
+		    		self.dtManager.visible = false;
+		    		self.debugManager.visible = false;
+		    		return;
+		    	}
+		      self.addPanel(self.bmManager.panel);
+			  	self.bmManager.visible = true;
+		  		self.dtManager.visible = false;
+			  	self.debugManager.visible = false;
+			  	self.bmManager.writeList([...self.array]);
+		    },
+		  });
+		}
+		
+	  editorManager.editor.commands.removeCommand("toggleBookmark");
+		if (self.plugSettings.toggleBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+		    name: "toggleBookmark",
+		    description: "",
+		    bindKey: { win: "Ctrl-" + self.plugSettings.toggleBMCommand[0] },
+		    exec: () => {
+		      const row = editorManager.editor.getSelectionRange().start.row;
+					if (self.array.includes(row)) {
+						var newArray = [];
+			  		for (let i = 0; i < self.array.length; i++) {
+			  			if (self.array[i] != row) {
+			  				newArray.push(self.array[i]);
+			  			} else {
+			  				self.bmManager.removeItem(i);
+			  			}
+			  		}
+			  		self.array = newArray;
+					} else {
+						self.addLine(row);
+					}
+		  		self.upateGutter();
+		    },
+		  });
+		}
+		
+		editorManager.editor.commands.removeCommand("nextBookmark");
+		if (self.plugSettings.nextBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+		    name: "nextBookmark",
+		    description: "",
+		    bindKey: { win: "Ctrl-" + self.plugSettings.nextBMCommand[0] },
+		    exec: () => {
+		      const row = editorManager.editor.getSelectionRange().start.row;
+					for (let i = 0; i < self.array.length; i++) {
+						if (self.array[i] > row) {
+							editorManager.editor.gotoLine(self.array[i] + 1);
+							break;
+						}
+					}
+		    },
+		  });
+		}
+		
+		editorManager.editor.commands.removeCommand("previousBookmark");
+		if (self.plugSettings.prevBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+		    name: "previousBookmark",
+		    description: "",
+		    bindKey: { win: "Ctrl-" + self.plugSettings.prevBMCommand[0] },
+		    exec: () => {
+		      const row = editorManager.editor.getSelectionRange().start.row;
+					for (let i = self.array.length - 1; i >= 0; i--) {
+						if (self.array[i] < row) {
+							editorManager.editor.gotoLine(self.array[i] + 1);
+							break;
+						}
+					}
+		    },
+		  });
+		}
+	}
+	
+	async ready(link) {
+		link.ready = true;
+		//alert("ready", "");
 		const self = this;
 		const fsData = await fs(window.DATA_STORAGE + "bookmark.json");
   	this.fsData = fsData;
@@ -90,6 +226,7 @@ class BookmarkPlugin {
 		
 		bmManager.setList(this.array);
   	
+  	//SIDE BUTTON
   	this.addSB = SideButton({
 		  text: 'addBM',
 		  icon: 'my-icon',
@@ -103,10 +240,10 @@ class BookmarkPlugin {
 		  textColor: '#000',
 			}
 		);
-		this.addSB.show();
+		//this.addSB.show();
 		
 		this.showSB = SideButton({
-		  text: 'showBM',
+		  text: 'Bookmark',
 		  icon: 'my-icon',
 		  onclick() {
 		  	self.addPanel(bmManager.panel);
@@ -136,6 +273,7 @@ class BookmarkPlugin {
 		);
 		//debugSB.show();
 		
+		//PANEL EVENTS
 		bmManager.panelTop.addEventListener("click", async (e) => {
 			const target = e.target.closest("[data-action]");
 		  if (!target) return;
@@ -143,9 +281,20 @@ class BookmarkPlugin {
 		  switch(target.dataset.action) {
 		  	case "add":
 		  		const row = editorManager.editor.getSelectionRange().start.row;
-		  		this.addLine(row);
+					if (this.array.includes(row)) {
+						var newArray = [];
+			  		for (let i = 0; i < this.array.length; i++) {
+			  			if (this.array[i] != row) {
+			  				newArray.push(this.array[i]);
+			  			} else {
+			  				bmManager.removeItem(i);
+			  			}
+			  		}
+			  		this.array = newArray;
+					} else {
+						this.addLine(row);
+					}
 		  		this.upateGutter();
-		  		this.notify(`New bookmark: ${row + 1}`);
 			  	return;
 		  	case "save":
 		  		await this.saveData();
@@ -196,10 +345,17 @@ class BookmarkPlugin {
 		  if (!target) return;
 		  
 		  switch(target.dataset.action) {
+		  	case "back":
+		  		this.removePanel();
+		  		this.addPanel(bmManager.panel);
+		  		bmManager.visible = true;
+		  		dtManager.visible = false;
+		  		debugManager.visible = false;
+		  		return;
 		  	case "close":
 		  		this.removePanel();
 	    		dtManager.visible = false;
-		  		return
+		  		return;
 	  	}
 		});
 		
@@ -222,16 +378,16 @@ class BookmarkPlugin {
 		  
 		  switch(target.dataset.action) {
 		  	case "data":
-		  		//debugManager.log(JSON.stringify(data));
+		  		debugManager.log(JSON.stringify(data));
 		  		return;
 		  	case "buffer":
-		  		//debugManager.log(JSON.stringify(this.buffer));
+		  		debugManager.log(JSON.stringify(this.buffer));
 		  		return;
 		  	case "file":
-		  		//debugManager.log(this.file.id + " : " + this.file.filename);
+		  		debugManager.log(this.file.id + " : " + this.file.filename);
 		  		return;
 		  	case "array":
-		  		//debugManager.log(this.array);
+		  		debugManager.log(this.array);
 		  		return;
 		  	case "close":
 		  		this.removePanel();
@@ -251,6 +407,7 @@ class BookmarkPlugin {
 		  }
 	  });
 	  
+	  //EDITOR EVENTS
 		editorManager.on("new-file", (e) => {
 			//debugManager.log("new-file: " + e.id + " : " + e.filename);
 			this.buffer[e.id] = [...(data.file[e.id] ?? {array: []}).array];
@@ -354,13 +511,24 @@ class BookmarkPlugin {
 	    if (bmManager.visible) bmManager.writeList(this.array);
 		});
 		
+		//settings.on("update", this.updateSettings);
+		this.updateSettings();
+		
 		this.notify("Bookmark Ready")
   }
   
   async destroy() {
+  	editorManager.editor.commands.removeCommand("readyBookmark");
+  	editorManager.editor.commands.removeCommand("showBookmarkList");
+  	editorManager.editor.commands.removeCommand("toggleBookmark");
+  	editorManager.editor.commands.removeCommand("previousBookmark");
+  	editorManager.editor.commands.removeCommand("nextBookmark")
+  	//settings.off("update", this.updateSettings);
+  	delete settings.value[plugin.id];
+    settings.update(true);
   	//alert("Bookmark", "Destroy", () => {});
     this.addSB.hide();
-    this.showBM.hide();
+    this.showSB.hide();
     if (this.getPanel()) this.removePanel();
     this.style.remove();
   }
@@ -427,6 +595,57 @@ class BookmarkPlugin {
   	await this.fsData.writeFile(JSON.stringify(this.data));
 	}
 	
+	get settingsObj() {
+      return {
+          list: [
+              {
+                  key: "sideButton",
+                  text: "Enable SideButton",
+                  checkbox: !!this.plugSettings.sideButton,
+                  info: ``
+              },
+              {
+                  key: "showBMCommand",
+                  text: "Ctrl + [key]: Show Bookmark list.",
+                  value: this.plugSettings.showBMCommand,
+                  prompt: "Key",
+                  promptType: "text"
+              },
+              {
+                  key: "toggleBMCommand",
+                  text: "Ctrl + [key]: Toggle Bookmark.",
+                  value: this.plugSettings.toggleBMCommand,
+                  prompt: "Key",
+                  promptType: "text"
+              },
+              {
+                  key: "prevBMCommand",
+                  text: "Ctrl + [key]: Go to previous Bookmark.",
+                  value: this.plugSettings.prevBMCommand,
+                  prompt: "Key",
+                  promptType: "text"
+          	 },
+             {
+                  key: "nextBMCommand",
+                  text: "Ctrl + [key]: Go to next Bookmark.",
+                  value: this.plugSettings.nextBMCommand,
+                  prompt: "Key",
+                  promptType: "text"
+          	 }
+          ],
+          cb: (key, value) => {
+              this.plugSettings[key] = value;
+              settings.update();
+              this.updateSettings()
+              //acode.alert(key + " : " + value, "Please restart acode");
+          }
+      };
+  }
+
+  get plugSettings() {
+      return settings.value[plugin.id];
+  }
+	
 }
 
 if (window.acode) {
@@ -435,6 +654,7 @@ if (window.acode) {
     if (!baseUrl.endsWith('/')) baseUrl += '/';
     bookmarkPlugin.baseUrl = baseUrl;
     await bookmarkPlugin.init($page, cacheFile, cacheFileUrl);
-  });
+  },
+  bookmarkPlugin.settingsObj);
   acode.setPluginUnmount(plugin.id, bookmarkPlugin.destroy);
 }

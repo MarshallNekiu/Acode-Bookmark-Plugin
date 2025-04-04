@@ -1,6 +1,7 @@
 import * as esbuild from "esbuild";
 import { exec } from "child_process";
-import {sassPlugin} from 'esbuild-sass-plugin'
+import {sassPlugin} from 'esbuild-sass-plugin';
+import fs from 'fs';
 
 const isServe = process.argv.includes("--serve");
 
@@ -35,6 +36,26 @@ let buildConfig = {
   outdir: "dist",
   plugins: [
   	zipPlugin,
+  	sassPlugin({
+      type: 'css-text',
+      async transform(source) {
+        const svgRegex = /url\(['"]?([^'"\)]+\.svg)['"]?\)/g;
+        let transformedSource = source;
+
+        // Find all SVG URLs
+        const matches = [...source.matchAll(svgRegex)];
+        for (const match of matches) {
+          const svgPath = match[1];
+          const svgContent = await fs.promises.readFile(`src/${svgPath}`, 'utf8');
+          const encodedSVG = encodeURIComponent(svgContent)
+            .replace(/'/g, '%27')
+            .replace(/"/g, '%22');
+          const dataURL = `url('data:image/svg+xml;utf8,${encodedSVG}')`;
+          transformedSource = transformedSource.replace(match[0], dataURL);
+        }
+        return transformedSource;
+      },
+    }),
   	sassPlugin(
   		{
   			type: 'css-text'

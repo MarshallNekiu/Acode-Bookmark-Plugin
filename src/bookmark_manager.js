@@ -7,12 +7,12 @@ export default class BookmarkManager {
 		  <div class="mnbm-content">
 		    <div class="mnbm-top">
 		      <div class="mnbm-left">
-		        <button class="mnbm-add" data-action="add"> Add </button>
-		        <button class="mnbm-save" data-action="save"> Save </button>
-		        <button class="mnbm-load" data-action="load"> Load </button>
-		        <button class="mnbm-file" data-action="file"> File </button>
+		        <button class="mnbm-add" data-action="add"> ⇌ </button>
+		        <button class="mnbm-save" data-action="save"> ↑ </button>
+		        <button class="mnbm-load" data-action="load"> ↓ </button>
+		        <button class="mnbm-file" data-action="file"> ≡ </button>
 		      </div>
-		      <button class="mnbm-close" data-action="close"> Close </button>
+		      <button class="mnbm-close" data-action="close"> Χ </button>
 		    </div>
 		    <div class="mnbm-body">
 			    <div class="mnbm-container">
@@ -20,6 +20,7 @@ export default class BookmarkManager {
 			    </div>
 		    </div>
 		  </div>
+  		<div class="mnbm-bg"> </div>
 		`;
 		this.panelTop = this.panel.querySelector(".mnbm-top");
 		this.list = this.panel.querySelector(".mnbm-list");
@@ -31,7 +32,7 @@ export default class BookmarkManager {
 	    <li class="mnbm-item">
 	      <p class="mnbm-prefix" data-acton="select"> </p>
 	      <p class="mnbm-text" data-action="select"> </p>
-	      <button class="mnbm-erase" data-action="erase"> Erase </button>
+	      <button class="mnbm-erase" data-action="erase"> X </button>
 	    </li>
 		`;
 		const last = this.list.childElementCount;
@@ -59,7 +60,7 @@ export default class BookmarkManager {
 				<li class="mnbm-item">
 					<p class="mnbm-prefix" data-acton="select"> </p>
 					<p class="mnbm-text" data-action="select"> </p>
-					<button class="mnbm-erase" data-action="erase"> Erase </button>
+					<button class="mnbm-erase" data-action="erase"> X </button>
 				</li>
 			`;
 		}

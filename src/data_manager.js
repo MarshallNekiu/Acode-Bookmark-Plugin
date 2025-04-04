@@ -9,7 +9,10 @@ export default class DataManager {
 		this.panel.innerHTML = `
 		  <div class="mnbm-content">
 		    <div class="mnbm-top">
-		      <button class="mnbm-close" data-action="close"> Close </button>
+		      <div class="mnbm-left">
+		        <button class="mnbm-back" data-action="back"> ≪ </button>
+		       </div>
+		      <button class="mnbm-close" data-action="close"> X </button>
 		    </div>
 		    <div class="mnbm-body">
 			    <div class="mnbm-container">
@@ -17,6 +20,7 @@ export default class DataManager {
 			    </div>
 		    </div>
 		  </div>
+  		<div class="mnbm-bg"> </div>
 		`;
 		this.panelTop = this.panel.querySelector(".mnbm-top");
 		this.list = this.panel.querySelector(".mnbm-list");
@@ -28,7 +32,7 @@ export default class DataManager {
 	    <li class="mnbm-item">
 	      <p class="mnbm-prefix" data-acton="select"> </p>
 	      <p class="mnbm-text" data-action="select"> </p>
-	      <button class="mnbm-erase" data-action="erase"> Erase </button>
+	      <button class="mnbm-erase" data-action="erase"> X </button>
 	    </li>
 		`;
 		this.list.innerHTML = "";

@@ -4,7 +4,8 @@ A simple plugin to navigate through text.
 
 ## Behavior
 
-- **Add**: Add a row to the *Bookmark List*.*(Also gutter click)*
+- **Ready**: Initialize the plugin.*(Until better option this is manual)*
+- **Toggle**: Toggle the Bookmark for the row.
 - **Show**: Show the *Bookmark List*.
 - **Save**: Save the *Bookmark list* for the current file.*(Auto)*
 - **Load**: Load the *Bookmark list* for the current file.*(Auto)*
@@ -12,7 +13,9 @@ A simple plugin to navigate through text.
 
 ## Version Note
 
-Bookmark Automaton.*dev*.
+- **Plugin Settings**
+- **Keyboard shortcut**
+- **Fancy UI**
 
 ## Releases
 
@@ -20,3 +23,4 @@ Bookmark Automaton.*dev*.
 - **v1.1.0**: [Bookmark Simple HTML.](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.1.0).
 - **v1.1.8**: [Bookmark Automaton.beta.dev](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.1.8).
 - **v1.1.9**: [Bookmark Automaton.dev](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.1.9).
+- **v1.2.0**: [Bookmark Accessible.SASS](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.2.0).
