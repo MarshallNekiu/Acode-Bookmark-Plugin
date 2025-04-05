@@ -8,10 +8,11 @@
   width: 50%;
   height: 50%;
   padding: 8px;
+  padding-bottom: 16px;
   transform: translate(-50%, -50%);
   
   .mnbm-bg {
-  	filter: blur(4px);
+  	filter: blur(3px);
   	z-index: -1;
   	position: fixed;
   	top: 0%;
@@ -20,7 +21,6 @@
   	height: 100%;
 	  background: gray;
   	background-image: url("./img/icon.svg");
-	  //background-color: #ff040433;
 	  opacity: 0.2;
 	  background-blend-mode: multiply;
 	  background-repeat: no-repeat;
@@ -51,14 +51,16 @@
       display: flex;
 
       .mnbm-left {
+      	width: 100%;
         overflow-x: scroll;
         display: flex;
+        margin-right: 8px;
         
         > button {
           margin-right:8px;
         }
         
-        .mnbm-add {
+        .mnbm-toggle {
         	background: #14c81499;
         	text-align: center;
       		padding-left: 8px;
@@ -66,12 +68,14 @@
         }
         
         .mnbm-save {
+        	background: #1414c899;
         	text-align: center;
       		padding-left: 8px;
       		padding-right: 8px;
         }
         
         .mnbm-load {
+        	background: #c8641499;
         	text-align: center;
       		padding-left: 8px;
       		padding-right: 8px;
@@ -88,6 +92,13 @@
       		padding-left: 8px;
       		padding-right: 8px;
         }
+        
+        .mnbm-touchable {
+		    	width: 100%;
+		    	height: 100%;
+		    	background: #ffffff1a;
+		    	border-radius: 3px;
+		    }
       }
 
       .mnbm-close {
@@ -95,7 +106,6 @@
       	text-align: center;
       	padding-left: 8px;
       	padding-right: 8px;
-        margin-left: auto;
       }
     }
     
@@ -154,10 +164,6 @@
   }
 }
 
-.mnbm-overlay {
-	
-}
-
 .mnbm-notification {
   position: fixed;
   top: 80%;
@@ -174,14 +180,10 @@
   	0% {
   		top: 80%;
   		opacity: 1;
-  		//color: #ffffff;
-  		//background: #000000;
   	}
   	100% {
   		top: 90%;
   		opacity: 0;
-  		//color: #ffffff00;
-  		//background: #00000000;
   	}
   }
 }

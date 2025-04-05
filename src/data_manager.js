@@ -11,6 +11,7 @@ export default class DataManager {
 		    <div class="mnbm-top">
 		      <div class="mnbm-left">
 		        <button class="mnbm-back" data-action="back"> ≪ </button>
+		        <div class="mnbm-touchable"> </div>
 		       </div>
 		      <button class="mnbm-close" data-action="close"> X </button>
 		    </div>

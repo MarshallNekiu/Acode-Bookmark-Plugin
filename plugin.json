@@ -2,7 +2,7 @@
   "id": "marshall.nekiu.bookmark",
   "name": "BookMark",
   "main": "dist/main.js",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "readme": "readme.md",
   "icon": "icon.png",
   "files": [],

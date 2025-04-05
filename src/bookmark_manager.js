@@ -7,10 +7,11 @@ export default class BookmarkManager {
 		  <div class="mnbm-content">
 		    <div class="mnbm-top">
 		      <div class="mnbm-left">
-		        <button class="mnbm-add" data-action="add"> ⇌ </button>
+		        <button class="mnbm-toggle" data-action="toggle"> ⇌ </button>
 		        <button class="mnbm-save" data-action="save"> ↑ </button>
 		        <button class="mnbm-load" data-action="load"> ↓ </button>
 		        <button class="mnbm-file" data-action="file"> ≡ </button>
+		        <div class="mnbm-touchable"> </div>
 		      </div>
 		      <button class="mnbm-close" data-action="close"> Χ </button>
 		    </div>
