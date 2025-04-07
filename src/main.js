@@ -1,4 +1,95 @@
 
+/*
+data.path = [
+	[0, path],
+		[0, subpath],
+		[0, subath],
+	[3, path],
+		[3, subpath],
+	[5, path],
+	[6, path],
+		[6, subpath],
+			[7, subpath],
+		[6, subpath],
+			[9, subpath]
+];
+
+const arr = [
+    [-1, "carpeta1/carpeta2", "/archivo1.txt"],
+    [-1, "documentos/proyectos/carpetaA", "/archivo2.csv"],
+    [-1, "documentos/proyectos/carpetaA", "/archivo3.csv"],
+    [-1, "imagenes/carpetaB", "/imagen.jpg"],
+    [-1, "proyectos/codigo/funciones/carpetaX", "/archivo3.py"],
+    [-1, "proyectos/codigo/funciones/carpetaX", "/archivo4.py"],
+    [-1, "videos/peliculas/carpetaC/carpetaD", "/archivo4.mp4"],
+    
+    [-1, "carpeta1/carpeta2/subcarpeta1", "/archivo5.txt"],
+    [-1, "carpeta1/carpeta2/subcarpeta1", "/archivo6.txt"],
+    [-1, "carpeta1/carpeta2/subcarpeta2", "/archivo6.txt"],
+    [-1, "documentos/proyectos/carpetaA/subcarpetaA", "/archivo7.pdf"],
+    [-1, "documentos/proyectos/carpetaA/subcarpetaB", "/archivo8.xlsx"],
+    [-1, "imagenes/carpetaB/subcarpeta1", "/imagen2.jpg"],
+    [-1, "proyectos/codigo/funciones/carpetaX/subcarpeta1", "/archivo9.py"],
+    [-1, "proyectos/codigo/funciones/carpetaX/subcarpeta1", "/archivo10.py"],
+    [-1, "proyectos/codigo/funciones/carpetaX/subcarpeta2", "/archivo10.py"],
+    [-1, "videos/peliculas/carpetaC/carpetaD/subcarpeta1", "/archivo11.mp4"],
+    [-1, "videos/peliculas/carpetaC/carpetaD/subcarpeta2", "/archivo12.mp4"],
+
+    [-1, "carpeta1/carpeta2/subcarpeta1/subsubcarpeta1", "/archivo13.txt"],
+    [-1, "carpeta1/carpeta2/subcarpeta1/subsubcarpeta1", "/archivo14.txt"],
+    [-1, "carpeta1/carpeta2/subcarpeta2/subsubcarpeta2", "/archivo14.txt"],
+    [-1, "documentos/proyectos/carpetaA/subcarpetaA/subsubcarpeta1", "/archivo15.pdf"],
+    [-1, "documentos/proyectos/carpetaA/subcarpetaB/subsubcarpeta2", "/archivo16.xlsx"],
+    [-1, "imagenes/carpetaB/subcarpeta1/subsubcarpeta1", "/imagen3.jpg"],
+    [-1, "proyectos/codigo/funciones/carpetaX/subcarpeta1/subsubcarpeta1", "/archivo17.py"],
+    [-1, "videos/peliculas/carpetaC/carpetaD/subcarpeta1/subsubcarpeta1", "/archivo18.mp4"],
+    [-1, "videos/peliculas/carpetaC/carpetaD/subcarpeta1/subsubcarpeta1", "/archivo19.mp4"]
+]
+
+const shuffle = (array) => {
+    for (var i = array.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+};
+
+const sort = (array) => array.sort((a, b) => a[1].localeCompare(b[1]));
+
+shuffle(arr);
+sort(arr);
+
+const arr2 = [];
+
+for (let i = 0; i < arr.length; i++) {
+	var x = true;
+	for (let j = i - 1; j >= 0; j--) {
+		if (arr[i][1].includes(arr[j][1)) {
+			arr2.push([j, arr[i][1].slice(arr[j][1].length), arr[i][2]]);
+			x = false;
+			break;
+		}
+	}
+	if (x) {
+		arr2.push([i, arr[i][1], arr[i][2]]);
+	}
+}
+
+JSON.stringify(arr).replaceAll("],", "],\n");
+JSON.stringify(arr2).replaceAll("],", "],\n");
+*/
+/*
+for (let i = 0; i < arr.length; i++) {
+	break;
+	if (arr2.length == i) arr2.push([i, arr[i][1], arr[i][2]]);
+	for (let j = i + 1; j < arr.length; j++) {
+		if (!(arr[j][1].includes(arr[i][1]))) break;
+		arr2.push([i, arr[j][1].slice(arr[i][1].length), arr[j][2]]);
+	}
+}
+*/
+
 import plugin from "../plugin.json";
 import BookmarkManager from "./bookmark_manager.js";
 import DataManager from "./data_manager";
