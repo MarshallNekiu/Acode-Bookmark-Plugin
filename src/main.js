@@ -33,7 +33,7 @@ class BookmarkPlugin {
 	
   constructor() {
     this.fsData;
-    this.data = { plugin: { version: "1.2.2" }, path: [], file: {} };
+    this.data = { plugin: { version: "1.2.2" }, file: {}, path: [], regex = [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
     this.buffer = {};
     this.file = editorManager.activeFile;
     //alert("c", this.file.id);
@@ -126,10 +126,10 @@ class BookmarkPlugin {
     document.head.append(style);
 
     const [bmManager, dtManager, debugManager] = [this.bmManager, this.dtManager, this.debugManager];
-    bmManager.panelPos = this.panelPos;
-    dtManager.panelPos = this.panelPos;
-    bmManager.init();
-    dtManager.init();
+    
+    for (let i = 0; i < data.regex.length; i++) {
+    	dtManager.regexManager.addRegex(data.regex[i][0], data.regex[i][1]);
+    }
 
     bmManager.setList(this.array);
 
