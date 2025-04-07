@@ -25,6 +25,8 @@ export default class Debugger {
 		this.panelTop = this.panel.querySelector(".mnbm-top");
 		this.list = this.panel.querySelector(".mnbm-list");
 		this.visible = false;
+		
+		this.panel.style.width = "100%";
 	}
 	
 	log(x) {
@@ -38,6 +40,7 @@ export default class Debugger {
 		this.list.insertAdjacentHTML("beforeend", listItem);
 		this.list.lastElementChild.firstElementChild.innerText = (this.list.childElementCount - 1) + ":";
 		this.list.lastElementChild.children.item(1).innerText = x;
+		this.list.lastElementChild.children.item(1).scrollLeft = 100000;
 	}
 	
 	unLog(itm) {

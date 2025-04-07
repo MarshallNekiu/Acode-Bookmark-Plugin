@@ -25,7 +25,19 @@ export default class BookmarkManager {
 		`;
 		this.panelTop = this.panel.querySelector(".mnbm-top");
 		this.list = this.panel.querySelector(".mnbm-list");
+		this.panelPos = {x: 50, y: 50};
 		this.visible = false;
+	}
+	
+	async init() {
+		const moveF = async (event) => {
+  		this.panelPos.x = (event.touches[0].clientX / (this.panel.offsetWidth * 2)) * 100;
+  	  this.panelPos.y = ((event.touches[0].clientY + this.panel.offsetHeight / 2 - 16) / (this.panel.offsetHeight * 2)) * 100;
+  	  this.panel.style.left = this.panelPos.x +  "%";
+  	  this.panel.style.top = this.panelPos.y + "%";
+    };
+    this.panelTop.querySelector(".mnbm-touchable").addEventListener("touchmove", moveF);
+    this.panel.querySelector(".mnbm-bg").addEventListener("touchmove", moveF);
 	}
 	
 	addLine(ln, idx) {
