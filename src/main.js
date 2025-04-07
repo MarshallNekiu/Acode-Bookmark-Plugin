@@ -1,50 +1,31 @@
-/*
-{
-	plugin: {version: "1.2.2"},
-	path: [
-		path0,
-		path1,
-			1://subpath0,
-			1://subpath1,
-				3://subpath0,
-		Path2
-	]
-	file: {
-		"ID": {name: filename, path_idx = -1, array: []},
-		"ID": {name: filename, path_idx = -1, array: []},
-		"ID": {name: filename, path_idx = -1, array: []}
-	}
-}
-*/
 
 import plugin from "../plugin.json";
 import BookmarkManager from "./bookmark_manager.js";
 import DataManager from "./data_manager";
 import Debugger from "./debugger.js";
+import BMWindow from "./window.js";
 import styles from "./styles.scss";
 
 const fs = acode.require("fsOperation");
 const settings = acode.require("settings");
 const SideButton = acode.require("sideButton");
-const alert = acode.require("alert");
 const confirm = acode.require("confirm");
+const alert = acode.require("alert");
 
 class BookmarkPlugin {
 	
   constructor() {
     this.fsData;
-    this.data = { plugin: { version: "1.2.2" }, file: {}, path: [], regex = [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
-    this.buffer = {};
+    this.data = { plugin: { version: "1.2.3" }, file: {}, path: [], regex = [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
     this.file = editorManager.activeFile;
-    //alert("c", this.file.id);
+    this.buffer = { this.file.id: [] };
     this.array = [];
     this.clipArray = []; //relative to start.row
     this.style = document.createElement("style");
     this.bmManager = new BookmarkManager();
     this.dtManager = new DataManager();
-    this.panelPos = {x: 50, y: 50};
     this.debugManager = new Debugger();
-    this.readySB;
+    this.window = new BMWindow();
     this.showSB;
     
     if (!settings.value[plugin.id] || !settings.value[plugin.id].toggleBMLCommand) {
@@ -60,48 +41,6 @@ class BookmarkPlugin {
   }
 
   async init() {
-  	
-  	
-    const self = this;
-    const initLink = { ready: false };
-    
-    this.readySB = SideButton({
-      text: "readyBM",
-      icon: "my-icon",
-      onclick() {
-        self.ready(initLink);
-      },
-      backgroundColor: "#3e4dc4",
-      textColor: "#000"
-    });
-    this.readySB.show();
-
-    const rF = () => {
-      editorManager.editor.commands.removeCommand("readyBookmark");
-      if (initLink.ready) {
-        settings.off("update", rF);
-      } else if (this.plugSettings.toggleBMLCommand.length > 0) {
-        editorManager.editor.commands.addCommand({
-          name: "readyBookmark",
-          description: "",
-          bindKey: { win: this.plugSettings.toggleBMLCommand },
-          exec: () => {
-            this.ready(initLink);
-            editorManager.editor.commands.removeCommand("readyBookmark");
-            settings.off("update", rF);
-          }
-        });
-      }
-    };
-    rF();
-    settings.on("update", rF);
-    this.ready(initLink);
-  }
-
-  async ready(initLink) {
-    initLink.ready = true;
-    this.readySB.hide();
-
     const self = this;
     const fsData = await fs(window.DATA_STORAGE + "bookmark.json");
     this.fsData = fsData;
@@ -109,14 +48,11 @@ class BookmarkPlugin {
     const dataRaw = await fsData.readFile("utf8");
     const data = dataRaw.startsWith('{"p') ? JSON.parse(dataRaw) : this.data;
     this.data = data;
-    const initFiles = [...editorManager.files];
-    const infi = editorManager.files;
+    const initFiles = editorManager.files;
     for (let i = 0; i < initFiles.length; i++) {
-      this.buffer[initFiles[i].id] = [...(data.file[initFiles[i].id] ?? { array: [] }).array];
+      this.buffer[initFiles[i].id] = [...(data.file[initFiles[i].id]?.array ?? [])];
     }
-    //alert("if", initFiles.map((x) => { return x.filename }));
     this.file = editorManager.activeFile;
-    var last_rename = { id: this.file.id, name: this.file.filename };
     this.array = [...this.buffer[this.file.id]];
     this.updateGutter();
 
@@ -125,24 +61,27 @@ class BookmarkPlugin {
     style.innerHTML = styles;
     document.head.append(style);
 
-    const [bmManager, dtManager, debugManager] = [this.bmManager, this.dtManager, this.debugManager];
+    const [bmManager, dtManager, debugManager, bmWindow] = [this.bmManager, this.dtManager, this.debugManager, this.window];
     
+    if (!data.regex) data.regex = [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
     for (let i = 0; i < data.regex.length; i++) {
     	dtManager.regexManager.addRegex(data.regex[i][0], data.regex[i][1]);
     }
 
-    bmManager.setList(this.array);
+    bmManager.makeList(this.array);
 
     //SIDE BUTTON
     this.showSB = SideButton({
       text: "Bookmark",
       icon: "my-icon",
       onclick() {
-        self.addPanel(bmManager.panel);
-        self.bmManager.visible = true;
+      	bmWindow.show();
+        bmWindow.setContent(bmManager.controlPanel, bmManager.list);
+      	bmManager.visible = true;
         dtManager.visible = false;
+        dtManager.regexManager.visible = false;
         debugManager.visible = false;
-        bmManager.writeList([...self.array]);
+        bmManager.editList(self.array);
       },
       backgroundColor: "#3e4dc4",
       textColor: "#000"
@@ -153,9 +92,10 @@ class BookmarkPlugin {
       text: "debug",
       icon: "my-icon",
       onclick() {
-        self.addPanel(debugManager.panel);
+        bmWindow.setContent(debugManager.controlPanel, debugManager.list);
         bmManager.visible = false;
         dtManager.visible = false;
+        dtManager.regexManager.visible = false;
         debugManager.visible = true;
       },
       backgroundColor: "#3e4dc4",
@@ -170,7 +110,7 @@ class BookmarkPlugin {
       this.updateGutter();
     });
   	
-    bmManager.panelTop.addEventListener("click", async (e) => {
+    bmManager.controlPanel.addEventListener("click", async (e) => {
       const target = e.target.closest("[data-action]");
       if (!target) return;
 
@@ -185,59 +125,69 @@ class BookmarkPlugin {
           this.notify("Bookmark saved");
           return;
         case "load":
-          this.array = [...(this.data.file[this.file.id] ?? { array: [] }).array];
-          bmManager.setList(this.array);
+          this.array = [...(this.data.file[this.file.id]?.array ?? [])];
+          bmManager.makeList(this.array);
           this.updateGutter();
           this.notify("Bookmark loaded");
           return;
         case "file":
-          this.addPanel(dtManager.panel);
-          dtManager.reLoad(data.file);
+          bmWindow.setContent(dtManager.controlPanel, dtManager.list);
+          dtManager.format();
           bmManager.visible = false;
           dtManager.visible = true;
-          return;
-        case "close":
-          this.removePanel();
-          bmManager.visible = false;
+          dtManager.regexManager.visible = false;
+          debugManager.visible = false;
           return;
       }
+    });
+    
+    bmWindow.panel.querySelector(".mnbm-close").addEventListener("click", (e) => {
+      bmWindow.hide();
+      bmManager.visible = false;
+      dtManager.visible = false;
+      dtManager.regexManager.visible = false;
+      debugManager.visible = false;
     });
 
     bmManager.list.addEventListener("click", (e) => {
       const target = e.target.closest("[data-action]");
       if (!target) return;
-      const line = parseInt(e.target.parentElement.children.item(0).innerText.slice(0, -1)) - 1;
+      const row = bmManager.getItemRow(target.parentElement);
 
       switch (target.dataset.action) {
         case "select":
-          editorManager.editor.gotoLine(line + 1);
+          editorManager.editor.gotoLine(row + 1);
           return;
         case "erase":
-          var newArray = [];
-          for (let i = 0; i < this.array.length; i++) {
-            if (this.array[i] != line) newArray.push(this.array[i]);
-          }
-          this.array = newArray;
+          //var newArray = [];
+          //for (let i = 0; i < this.array.length; i++) {
+          //  if (this.array[i] != row) newArray.push(this.array[i]);
+          //}
+        	const idx = this.array.indexOf(row);
+          this.array = [...this.array.slice(0, idx), ...this.array.slice(idx + 1)]
+          //this.array = newArray;
           this.updateGutter();
-          e.target.parentElement.remove();
+          target.parentElement.remove();
           return;
       }
     });
-
-    dtManager.panelTop.addEventListener("click", async (e) => {
+    
+    //DATA MANAGER
+    dtManager.controlPanel.addEventListener("click", async (e) => {
       const target = e.target.closest("[data-action]");
       if (!target) return;
 
       switch (target.dataset.action) {
         case "back":
-          this.removePanel();
-          this.addPanel(bmManager.panel);
-          bmManager.visible = true;
-          dtManager.visible = false;
-          bmManager.writeList(this.array);
-          debugManager.visible = false;
+          bmWindow.setContent(bmManager.controlPanel, bmManager.list);
+	      	bmManager.visible = true;
+	        dtManager.visible = false;
+	        dtManager.regexManager.visible = false;
+	        debugManager.visible = false;
+	        bmManager.editList(self.array);
           return;
         case "check-files":
+        	/*
         	const arr = [];
         	const arr2 = [];
         	for (let i = 0; i < editorManager.files.length; i++) {
@@ -264,11 +214,8 @@ class BookmarkPlugin {
         	for (let i = 0; i < arr.length; i++) {
         		debugManager.log(arr[i]);
         	}
+        	*/
         	return;
-        case "close":
-          this.removePanel();
-          dtManager.visible = false;
-          return;
       }
     });
 
@@ -278,14 +225,16 @@ class BookmarkPlugin {
 
       switch (target.dataset.action) {
         case "erase":
-          delete data.file[e.target.parentElement.dataset.id];
-          e.target.parentElement.remove();
+          delete data.file[target.parentElement.dataset.id];
+          target.parentElement.remove();
+          this.data.regex = this.dtManager.regexManager.getRegex();
           await fsData.writeFile(JSON.stringify(this.data));
           return;
       }
     });
     
-    debugManager.panelTop.addEventListener("click", (e) => {
+    //DEBUG MANAGER
+    debugManager.controlPanel.addEventListener("click", (e) => {
       const target = e.target.closest("[data-action]");
       if (!target) return;
 
@@ -302,54 +251,36 @@ class BookmarkPlugin {
         case "array":
           debugManager.log(this.array);
           return;
-        case "close":
-          this.removePanel();
-          debugManager.visible = false;
-          return;
-      }
-    });
-
-    debugManager.list.addEventListener("click", (e) => {
-      const target = e.target.closest("[data-action]");
-      if (!target) return;
-
-      switch (target.dataset.action) {
-        case "erase":
-          debugManager.unLog(e.target.parentElement);
-          return;
       }
     });
     
     //EDITOR EVENTS
-    
-    var al = `<p> ${initFiles.length} </p><br>`;
-    
     editorManager.on("new-file", (e) => {
       //debugManager.log("new-file: " + e.id + " : " + e.filename);
-      this.buffer[e.id] = [...(data.file[e.id] ?? { array: [] }).array];
-      al += `<p> new: ${e.filename} </p><br>`;
+      this.buffer[e.id] = [...(data.file[e.id]?.array ?? [])];
     });
 
     editorManager.on("file-loaded", (e) => {
       //debugManager.log("file-loaded: " + e.id + " : " + e.filename);
-      this.array = [...(this.data.file[e.id] ?? { array: [] }).array];
+      this.array = [...(this.data.file[e.id]?.array ?? [])];
       this.updateGutter();
-      bmManager.setList(this.array);
+      bmManager.makeList(this.array);
       this.notify("Bookmark loaded");
-      al += `<p> load: ${e.filename} </p><br>`;
     });
+    
+    const last_rename = { id: this.file.id, name: this.file.filename };
 
     editorManager.on("switch-file", async (e) => {
       //debugManager.log(`switch-file: ${this.file.filename} => ${e.filename}`);
       this.buffer[this.file.id] = [...this.array];
       this.array = [...this.buffer[e.id]];
-      bmManager.setList([...this.array]);
+      bmManager.makeList(this.array);
       this.updateGutter();
       this.file = e;
-      last_rename = { id: this.file.id, name: this.file.filename };
-      if (dtManager.visible) dtManager.reLoad(this.data.file);
-      this.notify("Bookmark switched: " + "Files: " + infi.length + " uri: " + this.file.uri + " || " + this.getFormattedPath(this.file.uri), 5000);
-      al += `<p> switched: ${e.filename} </p><br>`;
+      last_rename.id = this.file.id;
+      last_rename.name = this.file.filename;
+      //if (dtManager.visible) dtManager.reLoad(this.data.file);
+      this.notify("Bookmark switched"); // : " + "Files: " + infi.length + " uri: " + this.file.uri + " || " + this.getFormattedPath(this.file.uri), 5000);
     });
 
     editorManager.on("rename-file", async (e) => {
@@ -357,6 +288,7 @@ class BookmarkPlugin {
       if (this.data.file[last_rename.id]) {
         this.data.file[e.id] = { path_idx: -1, name: e.filename, array: [...this.data.file[last_rename.id].array] };
         if (!(last_rename.id == e.id)) delete this.data.file[last_rename.id];
+        this.data.regex = this.dtManager.regexManager.getRegex();
         await this.fsData.writeFile(JSON.stringify(this.data));
       }
       if (this.data.file[e.id]) this.data.file[e.id].name = e.filename;
@@ -364,13 +296,13 @@ class BookmarkPlugin {
       if (!(last_rename.id == e.id)) delete this.buffer[last_rename.id];
       if (this.dtManager.visible) this.dtManager.reLoad(this.data.file);
       this.file = e;
-      last_rename = { id: this.file.id, name: this.file.filename };
+      last_rename.id = this.file.id;
+      last_rename.name = this.file.filename;
       this.notify("Bookmark renamed");
     });
 
     editorManager.on("save-file", async (e) => {
       //debugManager.log("save-file: " + e.id + " : " + e.filename);
-      
       const arr = [];
       for (let i = 0; i < 500; i++) {
       	arr.push(i);
@@ -383,13 +315,11 @@ class BookmarkPlugin {
       
       await this.saveData();
       this.notify("Bookmark saved");
-      //alert("al", al + `<p> ${editorManager.files.length} </p><br>`);
     });
 
     editorManager.on("remove-file", (e) => {
       //debugManager.log("remove-file: " + e.id + " : " + e.filename);
       if (this.buffer[e.id]) delete this.buffer[e.id];
-      al += `<p> removed: ${e.filename} </p><br>`;
     });
 
     editorManager.editor.on("change", (e) => {
@@ -512,6 +442,7 @@ class BookmarkPlugin {
     this.data.file[this.file.id] = { path_idx: -1, name: this.file.filename, array: [...this.array] };
     if (this.array.length == 0) delete this.data.file[this.file.id];
     if (this.dtManager.visible) this.dtManager.reLoad(this.data.file);
+    this.data.regex = this.dtManager.regexManager.getRegex();
     await this.fsData.writeFile(JSON.stringify(this.data));
   }
   

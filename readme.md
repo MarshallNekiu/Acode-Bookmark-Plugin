@@ -26,3 +26,4 @@ A simple plugin to navigate through text.
 - **v1.1.9**: [Bookmark Automaton.dev](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.1.9).
 - **v1.2.0**: [Bookmark Accessible.SASS](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.2.0).
 - **v1.2.1**: [Bookmark Accessible.SASS.drag](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.2.1).
+- **v1.2.3**: [Bookmark Accessible.ready](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.2.3).

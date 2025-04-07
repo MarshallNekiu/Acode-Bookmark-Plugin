@@ -20,7 +20,7 @@ export default class BMWindow {
 		`;
 		this.visible = false;
 		
-		this.panel.querySelector(".mnbm-close").addEventListener("click", this.hide);
+		//this.panel.querySelector(".mnbm-close").addEventListener("click", this.hide);
 		
     this.panelTop.querySelector(".mnbm-drag").addEventListener("touchmove", this.onTouchMoved);
     this.panel.querySelector(".mnbm-bg").addEventListener("touchmove", this.onTouchMoved);

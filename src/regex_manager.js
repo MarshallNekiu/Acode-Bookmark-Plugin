@@ -29,11 +29,11 @@ export default class RegexManager {
 
       switch (target.dataset.disabled) {
         case "true":
-        	target.className = "mnbm-item-disabled";
+        	target.style.opacity = 0.5;
         	target.dataset.disabled = "false";
         	return;
         case "false":
-        	target.className = "mnbm-item";
+        	target.style.opacity = 1;
         	target.dataset.disabled = "true";
         	return;
       }
@@ -51,6 +51,15 @@ export default class RegexManager {
 		this.list.insertAdjacentHTML("beforeend", listItem);
 		this.list.lastElementChild.firstElementChild.value = rgx;
 		this.list.lastElementChild.children.item(1).value = sm;
+	}
+	
+	getRegex() {
+		const chn = this.list.children;
+		const arr = [];
+		for (let i = 0; i < chn.length; i++) {
+			arr.push([chn.firstElementChild.value, chn.children.item(1).value]);
+		}
+		return arr;
 	}
 	
 	format(x) {

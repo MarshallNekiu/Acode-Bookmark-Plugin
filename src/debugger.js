@@ -2,31 +2,26 @@
 export default class Debugger {
 	
 	constructor () {
-		this.panel = tag("section", {className: "mnbm-window"});
-		this.panel.innerHTML = `
-		  <div class="mnbm-content">
-		    <div class="mnbm-top">
-		      <div class="mnbm-left">
-		        <button class="mnbm-debug-data" data-action="data"> Data </button>
-		        <button class="mnbm-debug-buffer" data-action="buffer"> Buffer </button>
-		        <button class="mnbm-debug-file" data-action="file"> File </button>
-		        <button class="mnbm-debug-array" data-action="array"> Array </button>
-		      </div>
-		      <button class="mnbm-close" data-action="close"> Close </button>
-		    </div>
-		    <div class="mnbm-body">
-			    <div class="mnbm-container">
-			      <ul class="mnbm-list"> </ul>
-			    </div>
-		    </div>
-		  </div>
-  		<div class="mnbm-bg"> </div>
+		this.controlPanel = tag("div", {className: "mnbm-control-panel"});
+		this.controlPanel.innerHTML = `
+      <button class="mnbm-debug-data" data-action="data"> Data </button>
+      <button class="mnbm-debug-buffer" data-action="buffer"> Buffer </button>
+      <button class="mnbm-debug-file" data-action="file"> File </button>
+      <button class="mnbm-debug-array" data-action="array"> Array </button>
 		`;
-		this.panelTop = this.panel.querySelector(".mnbm-top");
-		this.list = this.panel.querySelector(".mnbm-list");
+		this.list = tag("ul", {className: "mnbm-list"});
 		this.visible = false;
 		
-		this.panel.style.width = "100%";
+		this.list.addEventListener("click", (e) => {
+      const target = e.target.closest("[data-action]");
+      if (!target) return;
+
+      switch (target.dataset.action) {
+        case "erase":
+          this.unLog(target.parentElement);
+          return;
+      }
+    });
 	}
 	
 	log(x) {
