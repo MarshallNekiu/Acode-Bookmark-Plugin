@@ -483,12 +483,14 @@ class BookmarkPlugin {
 			var x = true;
 			for (let j = i - 1; j >= 0; j--) {
 				if (baseArr[i][1].startsWith(baseArr[j][1])) {
-					formArr.push([j, baseArr[i][1].slice(baseArr[j][1].length), baseArr[i][2], baseArr[i][3]]);
+					formArr.push([j, baseArr[i][1].slice(baseArr[j][1].length), baseArr[i][2], baseArr[i][3], formArr[j][4] + (formArr[j][1] == "" ? "" : "----")]);
 					x = false;
 					break;
 				}
 			}
-			if (x) formArr.push([i, baseArr[i][1], baseArr[i][2], baseArr[i][3]]);
+			if (x) {
+				formArr.push([i, baseArr[i][1], baseArr[i][2], baseArr[i][3], ""]);
+			}
 		}
   	
   	/*
@@ -498,14 +500,19 @@ class BookmarkPlugin {
   	*/
   	this.debugManager.list.innerHTML = "";
   	for (let i = 0; i < formArr.length; i++) {
-  		this.debugManager.log(formArr[i]);
+  		if (formArr[i][1] != "") {
+  			this.debugManager.log(formArr[i][4] + formArr[i][1]);
+  			this.debugManager.log(formArr[i][4] + "----" + formArr[i][2]);
+  			continue;
+  		}
+  		this.debugManager.log(formArr[i][4] + formArr[i][2]);
   	}
   	//dtManager.makeList(formArr);
   	//if (dtManager.visible) dtManager.format();
   }
   
-  mapUri(id) {
-  	const baseUri = this.data.file[id].uri;
+  deFormatData() {
+  	
   }
   
   async removeData(id) {
