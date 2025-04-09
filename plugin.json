@@ -4,7 +4,7 @@
   "main": "dist/main.js",
   "version": "1.2.3",
   "readme": "readme.md",
-  "icon": "icon.png",
+  "icon": "icon.svg",
   "files": [],
   "minVersionCode" : 290,
   "license": "MIT",

@@ -33,14 +33,14 @@ export default class Debugger {
 	    </li>
 		`;
 		this.list.insertAdjacentHTML("beforeend", listItem);
-		this.list.lastElementChild.firstElementChild.innerText = (this.list.childElementCount - 1) + ":";
+		this.list.lastElementChild.firstElementChild.innerText = (this.list.childElementCount - 1);
 		this.list.lastElementChild.children.item(1).innerText = x;
 		this.list.lastElementChild.children.item(1).scrollLeft = 100000;
 	}
 	
 	unLog(itm) {
 		let e = itm.nextElementSibling;
-		let i = parseInt(itm.firstElementChild.innerText.slice(0, -1));
+		let i = parseInt(itm.firstElementChild.innerText);
 		itm.remove();
 		while (e) {
 			e.firstElementChild.innerText = i + ":";

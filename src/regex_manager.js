@@ -7,7 +7,7 @@ export default class RegexManager {
 	    <button class="mnbm-back" data-action="back"> ≪ </button>
 	    <button class="mnbm-regex-add" data-action="regex-add"> (+.*) </button>
 		`;
-		this.list = tag("ul", { className: "mnbm-list" } });
+		this.list = tag("ul", { className: "mnbm-list" });
 		this.visible = false;
 		
 		this.controlPanel.lastElementChild.addEventListener("click", (e) => this.addRegex());
@@ -68,6 +68,7 @@ export default class RegexManager {
 		for (let i = 0; i < chn.length; i++) {
 			if (chn.item(i).dataset.disabled == "true") continue;
 			const r = new RegExp(chn.item(i).firstElementChild.value);
+			// r.test(x)
 			if (x.search(r) > -1) x = x.split(chn.item(i).children.item(1).value).pop();
 		}
 	  return x;

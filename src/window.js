@@ -6,8 +6,8 @@ export default class BMWindow {
 		this.panel.innerHTML = `
 		  <div class="mnbm-content">
 		    <div class="mnbm-header">
-		      <div class="mnbm-control-panel"> </div>
 		      <div class="mnbm-drag"> </div>
+		      <div class="mnbm-control-panel"> </div>
 		      <button class="mnbm-close"> X </button>
 		    </div>
 		    <div class="mnbm-body">
@@ -22,8 +22,8 @@ export default class BMWindow {
 		
 		//this.panel.querySelector(".mnbm-close").addEventListener("click", this.hide);
 		
-    this.panelTop.querySelector(".mnbm-drag").addEventListener("touchmove", this.onTouchMoved);
-    this.panel.querySelector(".mnbm-bg").addEventListener("touchmove", this.onTouchMoved);
+    this.panel.querySelector(".mnbm-drag").addEventListener("touchmove", async (e) => this.onTouchMoved(e));
+    this.panel.querySelector(".mnbm-bg").addEventListener("touchmove", async (e) => this.onTouchMoved(e));
 	}
 	
 	show() {
@@ -36,7 +36,7 @@ export default class BMWindow {
 		this.visible = false;
 	}
 	
-	onTouchMoved(event) {
+	async onTouchMoved(event) {
 		const x = (event.touches[0].clientX / (this.panel.offsetWidth * 2));
 	  const y = ((event.touches[0].clientY + this.panel.offsetHeight / 2 - 16) / (this.panel.offsetHeight * 2));
 	  this.panel.style.left = x * 100 +  "%";

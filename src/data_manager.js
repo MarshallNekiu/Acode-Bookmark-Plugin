@@ -48,7 +48,7 @@ export default class DataManager {
 		if (this.focus >= 0) this.getItem(this.focus).style.background = itm.dataset.invalid == "true" ? "#c8141433" : "#ffffff66";
 		const focused = itm.dataset.id == editorManager.activeFile.id;
 		if (focused) itm.style.background = "#c8c8ff66";
-		this.focus = focused ? Array.prototype.indexOf.call(this.list.children, itm); : -1;
+		this.focus = focused ? Array.prototype.indexOf.call(this.list.children, itm) : -1;
 	}
 	
 	formatItem(itm, id, txt, invalid = "false") {
@@ -67,7 +67,7 @@ export default class DataManager {
 			itm.children.item(1).innerText = this.regexManager.format(itm.dataset.text);
 			itm.style.background = itm.dataset.invalid == "true" ? "#c8141433" : itm.dataset.id == editorManager.activeFile.id ? "#c8c8ff66" : "#ffffff66";
 		}
-		if (this.focus >= 0) 
+		if (this.focus >= 0) {};
 	}
 	
 	toggleRegex() {

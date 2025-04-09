@@ -39,13 +39,25 @@ const arr2 = [];
 for (let i = 0; i < arr.length; i++) {
 	var x = true;
 	for (let j = i - 1; j >= 0; j--) {
-		if (arr[i][1].startsWith(arr[j][1)) {
+		if (arr[i][1].startsWith(arr[j][1])) {
 			arr2.push([j, arr[i][1].slice(arr[j][1].length), arr[i][2]]);
 			x = false;
 			break;
 		}
 	}
 	if (x) arr2.push([i, arr[i][1], arr[i][2]]);
+}
+
+var s = "";
+var l = 0;
+
+for (let i = 0; i < arr2.length; i++) {
+	if (arr2[i][0] == i) l = 0;
+  for (let j = 0; j < (arr2[i][0] - arr2[arr2[i][0]][0]) + l; j++) {
+  	s += "  ";
+  	l += 1;
+  }
+  s += "  " + arr2[i] + "\n";
 }
 
 JSON.stringify(arr).replaceAll("],", "],\n");
@@ -68,9 +80,9 @@ class BookmarkPlugin {
 	
   constructor() {
     this.fsData;
-    this.data = { plugin: { version: "1.2.3" }, file: {}, regex = [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
+    this.data = { plugin: { version: "1.2.3" }, file: {}, regex: [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
     this.file = editorManager.activeFile;
-    this.buffer = { this.file.id: [] };
+    this.buffer = {};
     this.array = [];
     this.clipArray = []; //relative to start.row
     this.style = document.createElement("style");
@@ -88,7 +100,7 @@ class BookmarkPlugin {
         toggleBMLCommand: "Ctrl-B",
         sideButton: true
       };
-      settings.update(false);
+      //settings.update(false);
     };
   }
 
@@ -114,6 +126,7 @@ class BookmarkPlugin {
     this.data = data;
     
     const initFiles = editorManager.files;
+    this.buffer[this.file.id] = [];
     for (let i = 0; i < initFiles.length; i++) {
       this.buffer[initFiles[i].id] = [...(data.file[initFiles[i].id]?.array ?? [])];
     }
@@ -184,14 +197,13 @@ class BookmarkPlugin {
           this.notify("Bookmark saved");
           return;
         case "load":
-          this.array = [...(this.data.file[this.file.id]?.array ?? [])];
+          this.array = [...(data.file[this.file.id]?.array ?? [])];
           bmManager.makeList(this.array);
           this.updateGutter();
           this.notify("Bookmark loaded");
           return;
         case "file":
           bmWindow.setContent(dtManager.controlPanel, dtManager.list);
-          dtManager.format();
           bmManager.visible = false;
           dtManager.visible = true;
           dtManager.regexManager.visible = false;
@@ -212,7 +224,7 @@ class BookmarkPlugin {
         case "erase":
         	const idx = this.array.indexOf(row);
           this.array = [...this.array.slice(0, idx), ...this.array.slice(idx + 1)];
-          this.updateGutter();
+          editorManager.editor.session.removeGutterDecoration(row, "mnbm-gutter");
           target.parentElement.remove();
           return;
       }
@@ -230,7 +242,7 @@ class BookmarkPlugin {
 	        dtManager.visible = false;
 	        dtManager.regexManager.visible = false;
 	        debugManager.visible = false;
-	        bmManager.editList(self.array);
+	        bmManager.editList(this.array);
           return;
         case "check-files":
         	this.formatData(true);
@@ -246,8 +258,8 @@ class BookmarkPlugin {
         case "erase":
           delete data.file[target.parentElement.dataset.id];
           target.parentElement.remove();
-          this.data.regex = this.dtManager.regexManager.getRegex();
-          await fsData.writeFile(JSON.stringify(this.data));
+          data.regex = dtManager.regexManager.getRegex();
+          await fsData.writeFile(JSON.stringify(data));
           return;
       }
     });
@@ -265,7 +277,7 @@ class BookmarkPlugin {
           debugManager.log(JSON.stringify(this.buffer));
           return;
         case "file":
-          debugManager.log(this.file.id + " : " + this.file.filename);
+          debugManager.log(this.file.id + " : " + this.file.uri);
           return;
         case "array":
           debugManager.log(this.array);
@@ -281,13 +293,13 @@ class BookmarkPlugin {
 
     editorManager.on("file-loaded", (e) => {
       //debugManager.log("file-loaded: " + e.id + " : " + e.filename);
-      this.array = [...(this.data.file[e.id]?.array ?? [])];
-      this.updateGutter();
+      this.array = [...(data.file[e.id]?.array ?? [])];
       bmManager.makeList(this.array);
+      this.updateGutter();
       this.notify("Bookmark loaded");
     });
     
-    const last_rename = { id: this.file.id, name: this.file.filename };
+    const last_rename = { id: this.file.id, location: this.file.location, name: this.file.filename };
 
     editorManager.on("switch-file", async (e) => {
       //debugManager.log(`switch-file: ${this.file.filename} => ${e.filename}`);
@@ -297,6 +309,7 @@ class BookmarkPlugin {
       this.updateGutter();
       this.file = e;
       last_rename.id = this.file.id;
+      last_rename.location = this.file.location;
       last_rename.name = this.file.filename;
       //if (dtManager.visible) dtManager.reLoad(this.data.file);
       this.notify("Bookmark switched"); // : " + "Files: " + infi.length + " uri: " + this.file.uri + " || " + this.getFormattedPath(this.file.uri), 5000);
@@ -304,28 +317,32 @@ class BookmarkPlugin {
 
     editorManager.on("rename-file", async (e) => {
       //debugManager.log("rename-file: " + last_rename.id + " : " + last_rename.name + " => " + e.id + " : " + e.filename);
-      if (this.data.file[last_rename.id]) {
-        this.data.file[e.id] = { uri: [-1, e.location, e.filename], array: [...this.data.file[last_rename.id].array] };
-        if (!(last_rename.id == e.id)) delete this.data.file[last_rename.id];
-        this.data.regex = this.dtManager.regexManager.getRegex();
-        await this.fsData.writeFile(JSON.stringify(this.data));
+      /*
+      if (data.file[last_rename.id]) {
+        data.file[e.id] = { uri: [-1, e.location, e.filename], array: [...data.file[last_rename.id].array] };
+        if (!(last_rename.id == e.id)) delete data.file[last_rename.id];
+        data.regex = this.dtManager.regexManager.getRegex();
+        await fsData.writeFile(JSON.stringify(data));
       }
-      if (this.data.file[e.id]) this.data.file[e.id].uri = [-1, e.location, e.filename];
+      if (data.file[e.id]) data.file[e.id].uri = [-1, e.location, e.filename];
       this.buffer[e.id] = [...this.buffer[last_rename.id]];
       if (!(last_rename.id == e.id)) delete this.buffer[last_rename.id];
-      if (this.dtManager.visible) this.dtManager.reLoad(this.data.file);
+      if (dtManager.visible) dtManager.reLoad(data.file);
       this.file = e;
       last_rename.id = this.file.id;
+      last_rename.location = this.file.location;
       last_rename.name = this.file.filename;
+      */
       this.notify("Bookmark renamed");
     });
 
     editorManager.on("save-file", async (e) => {
       //debugManager.log("save-file: " + e.id + " : " + e.filename);
-      const arr = [];
+      /*const arr = [];
       for (let i = 0; i < 500; i++) {
       	arr.push(i);
       }
+      */
       /*
       const dt = {};
       for (let i = 0; i < editorManager.files.length; i++) {
@@ -396,10 +413,11 @@ class BookmarkPlugin {
     //settings.off("update", this.updateSettings);
     delete settings.value[plugin.id];
     settings.update(true);
-    this.readySB.hide();
+    //this.readySB.hide();
     //this.addSB.hide();
     this.showSB.hide();
-    if (this.getPanel()) this.removePanel();
+    this.window.hide();
+    //if (this.getPanel()) this.removePanel();
     this.style.remove();
   }
 
@@ -420,20 +438,14 @@ class BookmarkPlugin {
     }
     newArray.push(ln);
     this.array = newArray.concat(this.array.slice(newArray.length - 1));
-    this.bmManager.addLine(ln, newArray.length - 1);
+    this.bmManager.addItem(ln, newArray.length - 1);
   }
   
   toggleLine(ln) {
-  	if (this.array.includes(ln)) {
-      var newArray = [];
-      for (let i = 0; i < this.array.length; i++) {
-        if (this.array[i] != ln) {
-          newArray.push(this.array[i]);
-        } else {
-          this.bmManager.removeItem(i);
-        }
-      }
-      this.array = newArray;
+  	const idx = this.array.indexOf(ln);
+  	if (idx >= 0) {
+      this.array = this.array.slice(0, idx).concat(this.array.slice(idx + 1));
+      this.bmManager.getItem(idx).remove();
       editorManager.editor.session.removeGutterDecoration(ln, "mnbm-gutter");
     } else {
       this.addLine(ln);
@@ -455,51 +467,61 @@ class BookmarkPlugin {
       editorManager.editor.session.addGutterDecoration(this.array[i], "mnbm-gutter");
     }
   }
-
-  getPanel() {
-    return document.body.querySelector(".mnbm-window");
-  }
-
-  addPanel(pnl) {
-    if (this.getPanel()) this.removePanel();
-    document.body.append(pnl);
-	  pnl.style.left = this.panelPos.x +  "%";
-	  pnl.style.top = this.panelPos.y + "%";
-  }
-
-  removePanel() {
-    this.getPanel().remove();
-  }
   
-  formatData(checkFiles = false) {
+  async formatData(checkFiles = false) {
   	const baseArr = [];
   	const formArr = [];
   	
-  	dtManager.makeList(formArr);
-  	if (dtManager.visible) dtManager.format();
+  	for (let id in this.data.file) {
+  		const uri = this.data.file[id].uri;
+  		baseArr.push([...uri, id]);
+  	}
+  	
+  	baseArr.sort((a, b) => a[1].localeCompare(b[1]));
+		
+		for (let i = 0; i < baseArr.length; i++) {
+			var x = true;
+			for (let j = i - 1; j >= 0; j--) {
+				if (baseArr[i][1].startsWith(baseArr[j][1])) {
+					formArr.push([j, baseArr[i][1].slice(baseArr[j][1].length), baseArr[i][2], baseArr[i][3]]);
+					x = false;
+					break;
+				}
+			}
+			if (x) formArr.push([i, baseArr[i][1], baseArr[i][2], baseArr[i][3]]);
+		}
+  	
+  	/*
+  	for (let i = 0; i < baseArr.length; i++) {
+  		this.debugManager.log(baseArr[i]);
+  	}
+  	*/
+  	this.debugManager.list.innerHTML = "";
+  	for (let i = 0; i < formArr.length; i++) {
+  		this.debugManager.log(formArr[i]);
+  	}
+  	//dtManager.makeList(formArr);
+  	//if (dtManager.visible) dtManager.format();
+  }
+  
+  mapUri(id) {
+  	const baseUri = this.data.file[id].uri;
+  }
+  
+  async removeData(id) {
+  	//remap uri
+  	//delete
+  	//save
   }
 
   async saveData() {
     this.data.file[this.file.id] = { uri: [-1, this.file.location, this.file.filename], array: [...this.array] };
-    if (this.array.length == 0) delete this.data.file[this.file.id];
-    if (this.dtManager.visible) this.dtManager.reLoad(this.data.file);
-    this.data.regex = this.dtManager.regexManager.getRegex();
+    //if (this.array.length == 0) delete this.data.file[this.file.id];
+    //if (this.dtManager.visible) this.dtManager.reLoad(this.data.file);
+    //this.data.regex = this.dtManager.regexManager.getRegex();
+    this.formatData();
     await this.fsData.writeFile(JSON.stringify(this.data));
   }
-  
-  getFormattedPath() {
-	  let path = editorManager.activeFile?.location
-	  if (!path) {
-	    window.toast("Unsaved file", 3000)
-	    return false
-	  }
-	  if (path.search(/com\.termux/) > -1) {
-	    path = path.split("::").pop()
-	  } else if (path.search(/file:\/\/\//) > -1) {
-	    path = path.split("///").pop()
-	  }
-	  return path
-	}
 
   updateSettings() {
     const self = this;
@@ -516,18 +538,20 @@ class BookmarkPlugin {
         description: "",
         bindKey: { win: this.plugSettings.toggleBMLCommand },
         exec: async () => {
-          if (this.getPanel()) {
-            this.removePanel();
+          if (this.window.visible) {
+            this.window.hide();
             this.bmManager.visible = false;
             this.dtManager.visible = false;
+            this.dtManager.regexManager.visible = false;
             this.debugManager.visible = false;
             return;
           }
-          this.addPanel(this.bmManager.panel);
+          this.window.setContent(bmManager.controlPanel, bmManager.list);
           this.bmManager.visible = true;
           this.dtManager.visible = false;
+          this.dtManager.regexManager.visible = false;
           this.debugManager.visible = false;
-          this.bmManager.writeList([...this.array]);
+          this.bmManager.makeList(this.array);
         }
       });
     }
@@ -634,6 +658,7 @@ class BookmarkPlugin {
 }
 
 if (window.acode) {
+	/*
 	const td = tag("div", { className: "class", dataset: { uri: "abc" , chg: "012"} });
 	alert("dataset", td.className);
 	alert("dataset", td.dataset.uri);
@@ -642,6 +667,7 @@ if (window.acode) {
 	alert("dataset", td.dataset.chg);
 	delete td.dataset.chg;
 	alert("dataset", td.dataset.chg);
+	*/
 	
   const bookmarkPlugin = new BookmarkPlugin();
   acode.setPluginInit(

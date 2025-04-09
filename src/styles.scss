@@ -1,11 +1,7 @@
 
-
-//MOTO 5000: BAJITO Y BARBA
-//ROPA 4000
-
 .mnbm-window {
 	border-radius: 3px;
-  background: #ffffff33;
+  background: rgba(255,255,255,0.2);
   position: fixed;
   top: 50%;
   left: 50%;
@@ -24,7 +20,7 @@
   	width: 100%;
   	height: 100%;
 	  background: gray;
-  	background-image: url("./img/icon.svg");
+  	background-image: url("../icon.svg");
 	  opacity: 0.2;
 	  background-blend-mode: multiply;
 	  background-repeat: no-repeat;
@@ -40,7 +36,7 @@
     	border-radius: 3px;
     	border-style: none;
       padding: 3px;
-      background-color: #ffffffcc;
+      background-color: rgba(255,255,255,0.8);
       
       &:active {
       	transform: scale(90%);
@@ -60,35 +56,42 @@
     	border-bottom-right-radius: 3px;
     }
 
-    .mnbm-top {
+    .mnbm-header {
       display: flex;
+      position: relative;
+      padding: 2px;
+      background: rgba(255,255,255,0.102);
+      border-radius: 3px;
 
-      .mnbm-left {
-      	width: 100%;
+      .mnbm-control-panel {
+      	//width: auto;
         overflow-x: scroll;
         display: flex;
         margin-right: 8px;
+        //background: rgba(255,255,255,0.5);
+        
+        z-index: 1;
         
         > button {
           margin-right:8px;
         }
         
         .mnbm-toggle {
-        	background: #14c81499;
+        	background: rgba(20,200,20,0.6);
         	text-align: center;
       		padding-left: 8px;
       		padding-right: 8px;
         }
         
         .mnbm-save {
-        	background: #1414c899;
+        	background: rgba(20,20,200,0.6);
         	text-align: center;
       		padding-left: 8px;
       		padding-right: 8px;
         }
         
         .mnbm-load {
-        	background: #c8641499;
+        	background: rgba(200,100,20,0.6);
         	text-align: center;
       		padding-left: 8px;
       		padding-right: 8px;
@@ -112,31 +115,41 @@
       		padding-right: 8px;
         }
         
-        .mnbm-regexpop {
+        .mnbm-regex-visible {
         	text-align: center;
       		padding-left: 8px;
       		padding-right: 8px;
         }
         
-        .mnbm-regexadd {
+        .mnbm-regex-add {
         	text-align: center;
       		padding-left: 8px;
       		padding-right: 8px;
         }
-        
-        .mnbm-touchable {
-		    	width: 100%;
-		    	height: 100%;
-		    	background: #ffffff1a;
-		    	border-radius: 3px;
-		    }
       }
+      
+      .mnbm-drag {
+      	position: absolute;
+	    	display: inline-block;
+	    	width: 100%;
+	    	height: 100%;
+	    	//z-index: -1;
+	    	//background: rgba(255,255,255,0.102);
+	    	border-radius: 3px;
+	    	//padding: 2px;
+	    	
+	    	&:active {
+	    		//background: rgba(255,255,255,0.2);
+	    	}
+	    }
 
       .mnbm-close {
-      	background: #c8141480;
+      	background: rgba(200,20,20,0.502);
       	text-align: center;
       	padding-left: 8px;
       	padding-right: 8px;
+      	margin-left: auto;
+      	z-index: 1;
       }
     }
     
@@ -155,7 +168,7 @@
 
           .mnbm-item {
           	border-radius: 3px;
-          	background: #ffffff66;
+          	background: rgba(255,255,255,0.4);
           	padding: 2px;
             display: flex;
             justify-content: space-between;
@@ -169,7 +182,7 @@
             }
 
             .mnbm-erase {
-            	background: #c8141480;
+            	background: rgba(200,20,20,0.502);
             	text-align: center;
             	padding-left: 8px;
             	padding-right: 8px;
@@ -183,7 +196,7 @@
             	border-bottom-left-radius: 3px;
               width:100%;
               color: black;
-              background: #ffffff66;
+              background: rgba(255,255,255,0.4);
               overflow-x: scroll;
               display: inline-block;
               text-wrap: nowrap;
@@ -203,7 +216,7 @@
   padding: 2px;
   border-radius: 3px;
   color: black;
-  background: #ffffff99;
+  background: rgba(255,255,255,0.6);
   
   animation: off 1s ease-in;
   
@@ -220,5 +233,5 @@
 }
 
 .mnbm-gutter {
-	background: #2348ea45;
+	background: rgba(35,72,234,0.271);
 }
