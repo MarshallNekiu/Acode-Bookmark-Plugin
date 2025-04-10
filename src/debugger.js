@@ -48,4 +48,13 @@ export default class Debugger {
 			i += 1;
 		}
 	}
+	
+	align() {
+		const s = this.list.lastElementChild.firstElementChild.offsetWidth;// / this.list.lastElementChild.offsetWidth) * 100;
+		var e = this.list.firstElementChild;
+		while (e) {
+			e.firstElementChild.style.width = s + "px";
+			e = e.nextElementSibling;
+		}
+	}
 }

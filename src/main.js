@@ -80,7 +80,7 @@ class BookmarkPlugin {
 	
   constructor() {
     this.fsData;
-    this.data = { plugin: { version: "1.2.3" }, file: {}, regex: [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
+    this.data = { plugin: { version: "1.2.3" }, file: new Map(), regex: [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
     this.file = editorManager.activeFile;
     this.buffer = {};
     this.array = [];
@@ -109,26 +109,29 @@ class BookmarkPlugin {
     const fsData = await fs(window.DATA_STORAGE + "bookmark.json");
     this.fsData = fsData;
     
-    if ((await fsData.exists()) == false) await fs(window.DATA_STORAGE).createFile("bookmark.json", JSON.stringify(this.data));
+    if ((await fsData.exists()) == false) await fs(window.DATA_STORAGE).createFile("bookmark.json", JSON.stringify({plugin: this.data.plugin, file: this.mapToI(this.data.file), regex: this.data.regex}));
     const dataRaw = await fsData.readFile("utf8");
     const data = dataRaw.startsWith('{"p') ? JSON.parse(dataRaw) : this.data;
     
     if (data.plugin.version != "1.2.3") {
     	if (data.path) delete data.path;
-    	const newDFObj = {};
-    	for (let id in data.file) {
-    		newDFObj[id] = { uri: [-1, "", data.file[id].name], array: data.file[id].array };
-    	}
+    	const newDFObj = new Map();
+    	if (data.file.toString() == "[object Object]") {
+	    	for (let id in data.file) {
+	    		newDFObj.set(id, { uri: [-1, "", data.file[id].name], array: data.file[id].array });
+	    	}
+    	};
     	data.file = newDFObj;
     	data.regex = [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
     	data.plugin.version = "1.2.3";
-    };
+    }
+	  if (!(data.file.toString() == "[object Map]")) data.file = new Map(data.file);
     this.data = data;
     
     const initFiles = editorManager.files;
     this.buffer[this.file.id] = [];
     for (let i = 0; i < initFiles.length; i++) {
-      this.buffer[initFiles[i].id] = [...(data.file[initFiles[i].id]?.array ?? [])];
+      this.buffer[initFiles[i].id] = [...(data.file.get(initFiles[i].id)?.array ?? [])];
     }
     this.file = editorManager.activeFile;
     this.array = [...this.buffer[this.file.id]];
@@ -197,7 +200,7 @@ class BookmarkPlugin {
           this.notify("Bookmark saved");
           return;
         case "load":
-          this.array = [...(data.file[this.file.id]?.array ?? [])];
+          this.array = [...(data.file.get(this.file.id)?.array ?? [])];
           bmManager.makeList(this.array);
           this.updateGutter();
           this.notify("Bookmark loaded");
@@ -256,22 +259,22 @@ class BookmarkPlugin {
 
       switch (target.dataset.action) {
         case "erase":
-          delete data.file[target.parentElement.dataset.id];
+          data.file.delete(target.parentElement.dataset.id);
           target.parentElement.remove();
           data.regex = dtManager.regexManager.getRegex();
-          await fsData.writeFile(JSON.stringify(data));
+          await fsData.writeFile(JSON.stringify({ plugin: data.plugin, file: this.mapToI(data.file), regex: data.regex }));
           return;
       }
     });
     
     //DEBUG MANAGER
-    debugManager.controlPanel.addEventListener("click", (e) => {
+    debugManager.controlPanel.addEventListener("click", async (e) => {
       const target = e.target.closest("[data-action]");
       if (!target) return;
 
       switch (target.dataset.action) {
         case "data":
-          debugManager.log(JSON.stringify(data));
+          debugManager.log(JSON.stringify({plugin: this.data.plugin, file: this.mapToI(this.data.file), regex: this.data.regex}));
           return;
         case "buffer":
           debugManager.log(JSON.stringify(this.buffer));
@@ -288,12 +291,12 @@ class BookmarkPlugin {
     //EDITOR EVENTS
     editorManager.on("new-file", (e) => {
       //debugManager.log("new-file: " + e.id + " : " + e.filename);
-      this.buffer[e.id] = [...(data.file[e.id]?.array ?? [])];
+      this.buffer[e.id] = [...(data.file.get(e.id)?.array ?? [])];
     });
 
     editorManager.on("file-loaded", (e) => {
       //debugManager.log("file-loaded: " + e.id + " : " + e.filename);
-      this.array = [...(data.file[e.id]?.array ?? [])];
+      this.array = [...(data.file.get(e.id)?.array ?? [])];
       bmManager.makeList(this.array);
       this.updateGutter();
       this.notify("Bookmark loaded");
@@ -420,6 +423,14 @@ class BookmarkPlugin {
     //if (this.getPanel()) this.removePanel();
     this.style.remove();
   }
+  
+  mapToI(map) {
+  	const I = [];
+  	map.forEach((v, k) => {
+  		I.push([k, v]);
+  	});
+  	return I;
+  }
 
   notify(x, t = 1000) {
     const ntf = tag("p", { className: "mnbm-notification" });
@@ -470,17 +481,88 @@ class BookmarkPlugin {
   
   async formatData(checkFiles = false) {
   	const baseArr = [];
-  	const formArr = [];
+  	const newArr = [];
   	
-  	for (let id in this.data.file) {
-  		const uri = this.data.file[id].uri;
-  		baseArr.push([...uri, id]);
+  	this.data.file.forEach((v, k) => {
+  		const uri = v.uri;
+  		if (uri[0] == -1) {
+  			newArr.push([...uri, k]);
+  		} else {
+  			baseArr.push([...uri, k]);
+  		};
+  	});
+  	
+  	this.debugManager.list.innerHTML = "";
+  	
+  	//this.debugManager.log("Base")
+  	for (let i = 0; i < baseArr.length; i++) {
+  		//this.debugManager.log(baseArr[i]);
+  	}
+  	//this.debugManager.log("New");
+  	for (let i = 0; i < newArr.length; i++) {
+  		//this.debugManager.log(newArr[i]);
   	}
   	
+  	const pathArr = [];
+  	
+  	for (let i = 0; i < baseArr.length; i++) {
+  		if (baseArr[i][0] == i) continue;
+  		var newPath = baseArr[i][1];
+  		var k = baseArr[i][0];
+  		
+  		for (let j = i - 1; j >= 0; j--) {
+  			if (j != k) continue;
+  			k = baseArr[j][0];
+  			newPath = baseArr[j][1] + newPath;
+  			if (j == k) break;
+  		}
+  		pathArr.push([i, newPath]);
+  	}
+  	for (let i = 0; i < pathArr.length; i++) {
+  		baseArr[pathArr[i][0]][1] = pathArr[i][1]
+  	}
+  	for (let i = 0; i < newArr.length; i++) {
+  		baseArr.push(newArr[i]);
+  	}
+  	
+  	baseArr.sort((a, b) => a[2].localeCompare(b[2]));
   	baseArr.sort((a, b) => a[1].localeCompare(b[1]));
+  	
+  	//this.debugManager.log("BaseOrg");
+  	
+  	for (let i = 0; i < baseArr.length; i++) {
+  		//this.debugManager.log(baseArr[i]);
+  	}
+  	
+  	const formArr = [];
+  	const commonSubstring = (str1, str2) => {
+	    let res = '';
+	    for (let i = 0; i < str1.length; i++) {
+	        if (!str2.startsWith(res + str1[i])) {
+	            break;
+	        }
+	        res += str1[i];
+	    }
+	    return res;
+		};
+		const commonArr = [];
+		
+		for (let i = 0; i < baseArr.length; i++) {
+			for (let j = 0; j < baseArr.length; j++) {
+				const cs = commonSubstring(baseArr[i][1], baseArr[j][1]);
+				if (!commonArr.includes(cs)) commonArr.push(cs);
+			}
+		}
+		
+		commonArr.sort();
+		
+		for (let i = 0; i < commonArr.length; i++) {
+			this.debugManager.log(commonArr[i]);
+		}
 		
 		for (let i = 0; i < baseArr.length; i++) {
 			var x = true;
+			
 			for (let j = i - 1; j >= 0; j--) {
 				if (baseArr[i][1].startsWith(baseArr[j][1])) {
 					formArr.push([j, baseArr[i][1].slice(baseArr[j][1].length), baseArr[i][2], baseArr[i][3], formArr[j][4] + (formArr[j][1] == "" ? "" : "----")]);
@@ -488,31 +570,32 @@ class BookmarkPlugin {
 					break;
 				}
 			}
-			if (x) {
-				formArr.push([i, baseArr[i][1], baseArr[i][2], baseArr[i][3], ""]);
-			}
+			if (x) formArr.push([i, baseArr[i][1], baseArr[i][2], baseArr[i][3], ""]);
 		}
+		
+		//this.debugManager.log("Format");
+		
+		const newFile = new Map();
   	
-  	/*
-  	for (let i = 0; i < baseArr.length; i++) {
-  		this.debugManager.log(baseArr[i]);
-  	}
-  	*/
-  	this.debugManager.list.innerHTML = "";
   	for (let i = 0; i < formArr.length; i++) {
+  		newFile.set(formArr[i][3], { uri: formArr[i].slice(0, 3), arr: this.data.file.get(formArr[i][3]).array });
+  		//this.data.file[formArr[i][3]].uri = formArr[i].slice(0, 3);
   		if (formArr[i][1] != "") {
-  			this.debugManager.log(formArr[i][4] + formArr[i][1]);
-  			this.debugManager.log(formArr[i][4] + "----" + formArr[i][2]);
+  			this.debugManager.log(i + "||" + formArr[i][0] + "||" + formArr[i][4] + formArr[i][1]);
+  			this.debugManager.log(i + "||" + formArr[i][0] + "||" + formArr[i][4] +"----" + formArr[i][2]);
   			continue;
   		}
-  		this.debugManager.log(formArr[i][4] + formArr[i][2]);
+  		this.debugManager.log(i + "||" + formArr[i][0] + "||" + formArr[i][4] + formArr[i][2]);
   	}
-  	//dtManager.makeList(formArr);
-  	//if (dtManager.visible) dtManager.format();
-  }
-  
-  deFormatData() {
   	
+  	//this.debugManager.log("newFile");
+  	
+  	newFile.forEach((v, k) => {
+  		//this.debugManager.log(v.uri);
+  	});
+  	
+  	this.debugManager.align();
+  	this.data.file = newFile;
   }
   
   async removeData(id) {
@@ -522,12 +605,12 @@ class BookmarkPlugin {
   }
 
   async saveData() {
-    this.data.file[this.file.id] = { uri: [-1, this.file.location, this.file.filename], array: [...this.array] };
+    this.data.file.set(this.file.id, { uri: this.data.file.get(this.file.id)?.uri ?? [-1, this.file.location, this.file.filename], array: [...this.array] });
     //if (this.array.length == 0) delete this.data.file[this.file.id];
     //if (this.dtManager.visible) this.dtManager.reLoad(this.data.file);
     //this.data.regex = this.dtManager.regexManager.getRegex();
     this.formatData();
-    await this.fsData.writeFile(JSON.stringify(this.data));
+    await this.fsData.writeFile(JSON.stringify({ plugin: this.data.plugin, file: this.mapToI(this.data.file), regex: this.data.regex }));
   }
 
   updateSettings() {
