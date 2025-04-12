@@ -1,67 +1,7 @@
 
-/*
-const arr = [
-    [-1, "carpeta1/carpeta2", "/archivo1.txt"],
-    [-1, "documentos/proyectos/carpetaA", "/archivo2.csv"],
-    [-1, "documentos/proyectos/carpetaA", "/archivo3.csv"],
-    [-1, "imagenes/carpetaB", "/imagen.jpg"],
-    [-1, "proyectos/codigo/funciones/carpetaX", "/archivo3.py"],
-    [-1, "proyectos/codigo/funciones/carpetaX", "/archivo4.py"],
-    [-1, "videos/peliculas/carpetaC/carpetaD", "/archivo4.mp4"],
-    
-    [-1, "carpeta1/carpeta2/subcarpeta1", "/archivo5.txt"],
-    [-1, "carpeta1/carpeta2/subcarpeta1", "/archivo6.txt"],
-    [-1, "carpeta1/carpeta2/subcarpeta2", "/archivo6.txt"],
-    [-1, "documentos/proyectos/carpetaA/subcarpetaA", "/archivo7.pdf"],
-    [-1, "documentos/proyectos/carpetaA/subcarpetaB", "/archivo8.xlsx"],
-    [-1, "imagenes/carpetaB/subcarpeta1", "/imagen2.jpg"],
-    [-1, "proyectos/codigo/funciones/carpetaX/subcarpeta1", "/archivo9.py"],
-    [-1, "proyectos/codigo/funciones/carpetaX/subcarpeta1", "/archivo10.py"],
-    [-1, "proyectos/codigo/funciones/carpetaX/subcarpeta2", "/archivo10.py"],
-    [-1, "videos/peliculas/carpetaC/carpetaD/subcarpeta1", "/archivo11.mp4"],
-    [-1, "videos/peliculas/carpetaC/carpetaD/subcarpeta2", "/archivo12.mp4"],
-
-    [-1, "carpeta1/carpeta2/subcarpeta1/subsubcarpeta1", "/archivo13.txt"],
-    [-1, "carpeta1/carpeta2/subcarpeta1/subsubcarpeta1", "/archivo14.txt"],
-    [-1, "carpeta1/carpeta2/subcarpeta2/subsubcarpeta2", "/archivo14.txt"],
-    [-1, "documentos/proyectos/carpetaA/subcarpetaA/subsubcarpeta1", "/archivo15.pdf"],
-    [-1, "documentos/proyectos/carpetaA/subcarpetaB/subsubcarpeta2", "/archivo16.xlsx"],
-    [-1, "imagenes/carpetaB/subcarpeta1/subsubcarpeta1", "/imagen3.jpg"],
-    [-1, "proyectos/codigo/funciones/carpetaX/subcarpeta1/subsubcarpeta1", "/archivo17.py"],
-    [-1, "videos/peliculas/carpetaC/carpetaD/subcarpeta1/subsubcarpeta1", "/archivo18.mp4"],
-    [-1, "videos/peliculas/carpetaC/carpetaD/subcarpeta1/subsubcarpeta1", "/archivo19.mp4"]
-]
-
-arr.sort((a, b) => a[1].localeCompare(b[1]));
-
-const arr2 = [];
-
-for (let i = 0; i < arr.length; i++) {
-	var x = true;
-	for (let j = i - 1; j >= 0; j--) {
-		if (arr[i][1].startsWith(arr[j][1])) {
-			arr2.push([j, arr[i][1].slice(arr[j][1].length), arr[i][2]]);
-			x = false;
-			break;
-		}
-	}
-	if (x) arr2.push([i, arr[i][1], arr[i][2]]);
-}
-
-var s = "";
-var l = 0;
-
-for (let i = 0; i < arr2.length; i++) {
-	if (arr2[i][0] == i) l = 0;
-  for (let j = 0; j < (arr2[i][0] - arr2[arr2[i][0]][0]) + l; j++) {
-  	s += "  ";
-  	l += 1;
-  }
-  s += "  " + arr2[i] + "\n";
-}
-
-JSON.stringify(arr).replaceAll("],", "],\n");
-*/
+//DEFORMAT ON LOAD
+//FORMAT FOR SAVE
+//FIND FOLDER  WITH path.split("/")
 
 import plugin from "../plugin.json";
 import BookmarkManager from "./bookmark_manager.js";
@@ -73,8 +13,6 @@ import styles from "./styles.scss";
 const fs = acode.require("fsOperation");
 const settings = acode.require("settings");
 const SideButton = acode.require("sideButton");
-const confirm = acode.require("confirm");
-const alert = acode.require("alert");
 
 class BookmarkPlugin {
 	
@@ -84,7 +22,6 @@ class BookmarkPlugin {
     this.file = editorManager.activeFile;
     this.buffer = {};
     this.array = [];
-    this.clipArray = []; //relative to start.row
     this.style = document.createElement("style");
     this.bmManager = new BookmarkManager();
     this.dtManager = new DataManager();
@@ -92,49 +29,49 @@ class BookmarkPlugin {
     this.window = new BMWindow();
     this.showSB;
     
-    if (!settings.value[plugin.id] || !settings.value[plugin.id].toggleBMLCommand) {
+    if (!settings.value[plugin.id] || !settings.value[plugin.id].version == "1.2.3") {
       settings.value[plugin.id] = {
+      	version: "1.2.3",
         nextBMCommand: "Ctrl-L",
         prevBMCommand: "Ctrl-J",
         toggleBMCommand: "Ctrl-T",
         toggleBMLCommand: "Ctrl-B",
         sideButton: true
       };
-      //settings.update(false);
     };
   }
 
   async init() {
     const self = this;
-    const fsData = await fs(window.DATA_STORAGE + "bookmark.json");
-    this.fsData = fsData;
+    const fsData = this.fsData = await fs(window.DATA_STORAGE + "bookmark.json");
     
-    if ((await fsData.exists()) == false) await fs(window.DATA_STORAGE).createFile("bookmark.json", JSON.stringify({plugin: this.data.plugin, file: this.mapToI(this.data.file), regex: this.data.regex}));
+    if (!await fsData.exists()) await fs(window.DATA_STORAGE).createFile("bookmark.json", JSON.stringify({ plugin: this.data.plugin, file: [], regex: this.data.regex }));
     const dataRaw = await fsData.readFile("utf8");
     const data = dataRaw.startsWith('{"p') ? JSON.parse(dataRaw) : this.data;
     
     if (data.plugin.version != "1.2.3") {
-    	if (data.path) delete data.path;
-    	const newDFObj = new Map();
-    	if (data.file.toString() == "[object Object]") {
-	    	for (let id in data.file) {
-	    		newDFObj.set(id, { uri: [-1, "", data.file[id].name], array: data.file[id].array });
-	    	}
-    	};
-    	data.file = newDFObj;
-    	data.regex = [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
-    	data.plugin.version = "1.2.3";
-    }
-	  if (!(data.file.toString() == "[object Map]")) data.file = new Map(data.file);
+     	if (data.file.toString() == "[object Object]") {
+			if (data.path) delete data.path;
+			const newDFObj = new Map();
+			for (let id in data.file) {
+				newDFObj.set(id, { uri: [-1, "", data.file[id].name], array: data.file[id].array });
+			}
+			data.file = newDFObj;
+		};
+     	data.regex = data.regex ?? [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
+     	data.plugin.version = "1.2.3";
+    } else {
+		data.file = new Map(data.file);
+    };
     this.data = data;
     
     const initFiles = editorManager.files;
     this.buffer[this.file.id] = [];
     for (let i = 0; i < initFiles.length; i++) {
-      this.buffer[initFiles[i].id] = [...(data.file.get(initFiles[i].id)?.array ?? [])];
+		this.buffer[initFiles[i].id] = [...(data.file.get(initFiles[i].id)?.array ?? [])];
     }
     this.file = editorManager.activeFile;
-    this.array = [...this.buffer[this.file.id]];
+    this.array = this.buffer[this.file.id];
 
     const [bmManager, dtManager, debugManager, bmWindow] = [this.bmManager, this.dtManager, this.debugManager, this.window];
 
@@ -144,12 +81,6 @@ class BookmarkPlugin {
       icon: "my-icon",
       onclick() {
       	bmWindow.show();
-        bmWindow.setContent(bmManager.controlPanel, bmManager.list);
-      	bmManager.visible = true;
-        dtManager.visible = false;
-        dtManager.regexManager.visible = false;
-        debugManager.visible = false;
-        bmManager.editList(self.array);
       },
       backgroundColor: "#3e4dc4",
       textColor: "#000"
@@ -160,8 +91,9 @@ class BookmarkPlugin {
       text: "debug",
       icon: "my-icon",
       onclick() {
-      	bmWindow.show();
+      	if (!bmWindow.visible) document.body.append(bmWindow.panel);
         bmWindow.setContent(debugManager.controlPanel, debugManager.list);
+      	bmWindow.visible = true;
         bmManager.visible = false;
         dtManager.visible = false;
         dtManager.regexManager.visible = false;
@@ -172,18 +104,26 @@ class BookmarkPlugin {
     });
     debugSB.show();
     
-    //PANEL EVENTS
+    //EVENTS
     editorManager.editor.on("gutterclick", (e) => {
       const row = e.getDocumentPosition().row;
       this.toggleLine(row);
     });
     
-    bmWindow.panel.querySelector(".mnbm-close").addEventListener("click", (e) => {
-      bmWindow.hide();
+    bmWindow.panel.addEventListener("hide", () => {
       bmManager.visible = false;
       dtManager.visible = false;
       dtManager.regexManager.visible = false;
       debugManager.visible = false;
+    });
+    
+    bmWindow.panel.addEventListener("show", () => {
+    	bmWindow.setContent(bmManager.controlPanel, bmManager.list);
+      	bmManager.visible = true;
+        dtManager.visible = false;
+        dtManager.regexManager.visible = false;
+        debugManager.visible = false;
+        bmManager.editList(this.array);
     });
   	
     bmManager.controlPanel.addEventListener("click", async (e) => {
@@ -196,9 +136,17 @@ class BookmarkPlugin {
           this.toggleLine(row);
           return;
         case "save":
-          await this.saveData();
-          this.notify("Bookmark saved");
-          return;
+			const f = this.file;
+			if (!this.data.file.has(f.id)) dtManager.addItem(f.id, f.location, f.filename);
+			this.data.file.set(f.id, { uri: this.data.file.get(f.id)?.uri ?? [-1, f.location, f.filename], array: [...this.array] });
+			if (this.array.length == 0) {
+				delete this.data.file[f.id];
+				dtManager.removeItem(f.id);
+			};
+			this.setData(this.file.id, this.file.array, this.file.location, this.file.filename);
+			await this.saveData();
+			this.notify("Bookmark saved");
+			return;
         case "load":
           this.array = [...(data.file.get(this.file.id)?.array ?? [])];
           bmManager.makeList(this.array);
@@ -266,6 +214,11 @@ class BookmarkPlugin {
           return;
       }
     });
+    
+    dtManager.regexManager.list.addEventListener("input", (event) => {
+    	data.regex = dtManager.regexManager.getRegex();
+    	debugManager.log(event.data);
+    }))
     
     //DEBUG MANAGER
     debugManager.controlPanel.addEventListener("click", async (e) => {
@@ -479,7 +432,11 @@ class BookmarkPlugin {
     }
   }
   
-  async formatData(checkFiles = false) {
+  getUnformattedData(map) {
+  	
+  }
+  
+  async formatData(ufData, checkFiles = false) {
   	const baseArr = [];
   	const newArr = [];
   	
@@ -545,19 +502,25 @@ class BookmarkPlugin {
 	    }
 	    return res;
 		};
+		const longestCommonSubstring = (str1, str2) => {
+	    for (let i = str1.length; i > 0; i--) {
+        if (str1.slice(0, i) == str2) return str2;
+	    }
+	    return null;
+		};
 		const commonArr = [];
 		
 		for (let i = 0; i < baseArr.length; i++) {
 			for (let j = 0; j < baseArr.length; j++) {
-				const cs = commonSubstring(baseArr[i][1], baseArr[j][1]);
+				const cs = longestCommonSubstring(baseArr[i][1], baseArr[j][1]) ?? "";
 				if (!commonArr.includes(cs)) commonArr.push(cs);
 			}
 		}
 		
 		commonArr.sort();
-		
+		//this.debugManager.log("Common: " + commonArr.length);
 		for (let i = 0; i < commonArr.length; i++) {
-			this.debugManager.log(commonArr[i]);
+			//this.debugManager.log(commonArr[i]);
 		}
 		
 		for (let i = 0; i < baseArr.length; i++) {
@@ -573,7 +536,7 @@ class BookmarkPlugin {
 			if (x) formArr.push([i, baseArr[i][1], baseArr[i][2], baseArr[i][3], ""]);
 		}
 		
-		//this.debugManager.log("Format");
+		this.debugManager.log("Format");
 		
 		const newFile = new Map();
   	
@@ -581,11 +544,11 @@ class BookmarkPlugin {
   		newFile.set(formArr[i][3], { uri: formArr[i].slice(0, 3), arr: this.data.file.get(formArr[i][3]).array });
   		//this.data.file[formArr[i][3]].uri = formArr[i].slice(0, 3);
   		if (formArr[i][1] != "") {
-  			this.debugManager.log(i + "||" + formArr[i][0] + "||" + formArr[i][4] + formArr[i][1]);
-  			this.debugManager.log(i + "||" + formArr[i][0] + "||" + formArr[i][4] +"----" + formArr[i][2]);
+  			this.debugManager.log(/*i + "||" + formArr[i][0] + "||" +*/ formArr[i][4] + formArr[i][1]);
+  			this.debugManager.log(/*i + "||" + formArr[i][0] + "||" +*/ formArr[i][4] +"----" + formArr[i][2]);
   			continue;
   		}
-  		this.debugManager.log(i + "||" + formArr[i][0] + "||" + formArr[i][4] + formArr[i][2]);
+  		this.debugManager.log(/*i + "||" + formArr[i][0] + "||" +*/ formArr[i][4] + formArr[i][2]);
   	}
   	
   	//this.debugManager.log("newFile");
@@ -603,9 +566,14 @@ class BookmarkPlugin {
   	//delete
   	//save
   }
+  
+  setData(id, arr, loc, fn) {
+  	this.data.file.set(id, { uri: this.data.file.get(id)?.uri ?? [-1, loc, fn], array: [...arr] });
+    if (arr.length == 0) delete this.data.file[id];
+  }
 
   async saveData() {
-    this.data.file.set(this.file.id, { uri: this.data.file.get(this.file.id)?.uri ?? [-1, this.file.location, this.file.filename], array: [...this.array] });
+    //this.data.file.set(this.file.id, { uri: this.data.file.get(this.file.id)?.uri ?? [-1, this.file.location, this.file.filename], array: [...this.array] });
     //if (this.array.length == 0) delete this.data.file[this.file.id];
     //if (this.dtManager.visible) this.dtManager.reLoad(this.data.file);
     //this.data.regex = this.dtManager.regexManager.getRegex();

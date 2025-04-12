@@ -1,4 +1,6 @@
 
+const signalChanged = new Event("regexchange");
+
 export default class RegexManager {
 	
 	constructor() {
@@ -10,7 +12,7 @@ export default class RegexManager {
 		this.list = tag("ul", { className: "mnbm-list" });
 		this.visible = false;
 		
-		this.controlPanel.lastElementChild.addEventListener("click", (e) => this.addRegex());
+		this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.addRegex() });
 		
 		this.list.addEventListener("click", async (e) => {
       const target = e.target.closest("[data-action]");
