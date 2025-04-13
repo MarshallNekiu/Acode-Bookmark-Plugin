@@ -4,19 +4,16 @@ A simple plugin to navigate through text.
 
 ## Behavior
 
-- **Ready**: Initialize the plugin.*(Until better option this is manual)*
 - **Show**: Show the *Bookmark List*.
 	- **Toggle**: Toggle the Bookmark for the row.
 	- **Save**: Save the *Bookmark list* for the current file.*(Auto)*
 	- **Load**: Load the *Bookmark list* for the current file.*(Auto)*
 	- **File**: Show the *Files* with a *Bookmark List*.
+		- **Regex**: Slice path.
 
 ## Version Note
 
-- **Plugin Settings**
-	- **Keyboard shortcut**
-- **Fancy UI**
-- **DragEvent**
+- **Thousand lines of changes.**
 
 ## Releases
 
