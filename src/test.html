@@ -1,0 +1,744 @@
+
+<head>
+	<style>
+		body {
+			background: gray;
+		}
+		
+		.mnbm-window {
+			border-radius: 3px;
+			background: rgba(255,255,255,0.2);
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			width: 50%;
+			height: 50%;
+			padding: 8px;
+			padding-bottom: 16px;
+			transform: translate(-50%, -50%);
+		
+			.mnbm-bg {
+				filter: blur(3px);
+				z-index: -1;
+				position: fixed;
+				top: 0%;
+				left: 0%;
+				width: 100%;
+				height: 100%;
+				background: gray;
+				background-image: url("../icon.svg");
+				opacity: 0.2;
+				background-blend-mode: multiply;
+				background-repeat: no-repeat;
+				background-position: center;
+				background-size: contain;
+			}
+		
+			.mnbm-content {
+				height: 100%;
+				overflow: hidden;
+		
+				button {
+					border-radius: 3px;
+					border-style: none;
+					padding: 3px;
+					background-color: rgba(255,255,255,0.8);
+		
+					&:active {
+						transform: scale(90%);
+					}
+				}
+		
+				p {
+					padding: 3px;
+					//font-size:12px;
+				}
+		
+				input {
+					padding: 3px;
+					margin-right: 8px;
+					width: 100%;
+					height: 100%;
+					border-radius: 3px;
+					color: black;
+				}
+		
+				.mnbm-header {
+					display: flex;
+					position: relative;
+					padding: 2px;
+					background: rgba(255,255,255,0.102);
+					border-radius: 3px;
+		
+					.mnbm-control-panel {
+						//width: auto;
+						overflow-x: scroll;
+						display: flex;
+						margin-right: 8px;
+						//background: rgba(255,255,255,0.5);
+		
+						z-index: 1; > button {
+							margin-right:8px;
+						}
+		
+						.mnbm-toggle {
+							background: rgba(20,200,20,0.6);
+							text-align: center;
+							padding-left: 8px;
+							padding-right: 8px;
+						}
+		
+						.mnbm-save {
+							background: rgba(20,20,200,0.6);
+							text-align: center;
+							padding-left: 8px;
+							padding-right: 8px;
+						}
+		
+						.mnbm-load {
+							background: rgba(200,100,20,0.6);
+							text-align: center;
+							padding-left: 8px;
+							padding-right: 8px;
+						}
+		
+						.mnbm-file {
+							text-align: center;
+							padding-left: 8px;
+							padding-right: 8px;
+						}
+		
+						.mnbm-back {
+							text-align: center;
+							padding-left: 8px;
+							padding-right: 8px;
+						}
+		
+		
+		
+						.mnbm-check-files {
+							text-align: center;
+							padding-left: 8px;
+							padding-right: 8px;
+						}
+		
+						.mnbm-regex-visible {
+							text-align: center;
+							padding-left: 8px;
+							padding-right: 8px;
+						}
+		
+						.mnbm-regex-add {
+							text-align: center;
+							padding-left: 8px;
+							padding-right: 8px;
+						}
+					}
+		
+					.mnbm-drag {
+						position: absolute;
+						display: inline-block;
+						width: 100%;
+						height: 100%;
+						//z-index: -1;
+						//background: rgba(255,255,255,0.102);
+						border-radius: 3px;
+						//padding: 2px;
+		
+						&:active {
+							//background: rgba(255,255,255,0.2);
+						}
+					}
+		
+					.mnbm-close {
+						background: rgba(200,20,20,0.502);
+						text-align: center;
+						padding-left: 8px;
+						padding-right: 8px;
+						margin-left: auto;
+						z-index: 1;
+					}
+				}
+		
+				.mnbm-body {
+					height: 100%;
+					padding-top:4px;
+		
+					.mnbm-container {
+						height: 100%;
+						overflow-y: scroll;
+		
+						.mnbm-list {
+							padding-bottom: 24px;
+							margin-top: 0px;
+							list-style: none;
+							//height:100%;
+		
+		
+		
+							.mnbm-folder {
+								background:gray;
+								padding-left:3%;
+								//font-size:16px;
+								padding-top: 0px;
+		
+							}
+		
+							.mnbm-file {
+							//padding-top:0px;
+							//heigth:50%
+								border-radius: 3px;
+								background: rgba(255,255,255,0.4);
+								padding: 2px;
+								display: flex;
+								justify-content: space-between;
+								align-items: center;
+								margin-bottom: 2px;
+								//position:relative;
+								//background:red;
+								//padding-left: 50%;
+		
+								.mnbm-prefix {
+								margin-top: 0px;
+								margin-bottom: 0px;
+									//margin-left: 8px;
+									border-top-left-radius: 3px;
+									border-bottom-left-radius: 3px;
+									color: black;
+									text-align: center;
+								}
+		
+								.mnbm-erase {
+								margin-top: 0px;
+									background: rgba(200,20,20,0.502);
+									text-align: center;
+									padding-left: 8px;
+									padding-right: 8px;
+									border-top-left-radius: 0px;
+									border-bottom-left-radius: 0px;
+									margin-left: auto;
+								}
+		
+								.mnbm-text {
+								margin-top: 0px;
+								margin-bottom: 0px;
+									border-top-left-radius: 3px;
+									border-bottom-left-radius: 3px;
+									width:100%;
+									color: black;
+									background: rgba(255,255,255,0.4);
+									overflow-x: scroll;
+									display: inline-block;
+									text-wrap: nowrap;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		.mnbm-notification {
+			position: fixed;
+			top: 80%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			padding: 2px;
+			border-radius: 3px;
+			color: black;
+			background: rgba(255,255,255,0.6);
+		
+			animation: off 1s ease-in;
+		
+			@keyframes off {
+				0% {
+					top: 80%;
+					opacity: 1;
+				}
+				100% {
+					top: 90%;
+					opacity: 0;
+				}
+			}
+		}
+		
+		.mnbm-gutter {
+			background: rgba(35,72,234,0.271);
+		}
+	</style>
+</head>
+<body>
+	<section class="mnbm-window">
+		<div class="mnbm-content">
+			<div class="mnbm-header">
+				<div class="mnbm-drag"> </div>
+				<div class="mnbm-control-panel"> </div>
+				<button class="mnbm-close"> X </button>
+			</div>
+			<div class="mnbm-body">
+				<div class="mnbm-container">
+					<ul class="mnbm-list">
+						<ul class="mnbm-folder" data-path="path0/path0/path0/">
+							path0/path0/path0/
+							<div class="mnbm-file" data-id="id1" data-invalid="false">
+								<p class="mnbm-prefix">-1</p>
+								<p class="mnbm-text">name1</p>
+								<button class="mnbm-erase" data-action="erase"> X </button>
+							</div>
+							<div class="mnbm-file" data-id="id6" data-invalid="false">
+								<p class="mnbm-prefix">-1</p>
+								<p class="mnbm-text">name2</p>
+								<button class="mnbm-erase" data-action="erase"> X </button>
+							</div>
+						</ul>
+						<ul class="mnbm-folder" data-path="path1/">
+							path1/
+							<div class="mnbm-file" data-id="id7" data-invalid="false">
+								<p class="mnbm-prefix">-1</p>
+								<p class="mnbm-text">name1</p>
+								<button class="mnbm-erase" data-action="erase"> X </button>
+							</div>
+							<div class="mnbm-file" data-id="id8" data-invalid="false">
+								<p class="mnbm-prefix">-1</p>
+								<p class="mnbm-text">name2</p>
+								<button class="mnbm-erase" data-action="erase"> X </button>
+							</div>
+							<ul class="mnbm-folder" data-path="path0/">
+								path0/
+								<div class="mnbm-file" data-id="id3" data-invalid="false">
+										<p class="mnbm-prefix">-1</p>
+										<p class="mnbm-text">name1</p>
+										<button class="mnbm-erase" data-action="erase"> X </button>
+									</div>
+								<ul class="mnbm-folder" data-path="path1/">
+									path1/
+									<div class="mnbm-file" data-id="id9" data-invalid="false">
+										<p class="mnbm-prefix">-1</p>
+										<p class="mnbm-text">name2</p>
+										<button class="mnbm-erase" data-action="erase"> X </button>
+									</div>
+								</ul>
+							</ul>
+							<ul class="mnbm-folder" data-path="path1/path0">
+								path1/path0/
+								<div class="mnbm-file" data-id="id4" data-invalid="false">
+									<p class="mnbm-prefix">-1</p>
+									<p class="mnbm-text">name1</p>
+									<button class="mnbm-erase" data-action="erase"> X </button>
+								</div>
+								<div class="mnbm-file" data-id="id2" data-invalid="false">
+									<p class="mnbm-prefix">-1</p>
+									<p class="mnbm-text">name2</p>
+									<button class="mnbm-erase" data-action="erase"> X </button>
+								</div>
+							</ul>
+						</ul>
+					</div>
+				</div>
+			</div>
+		<div class="mnbm-bg"> </div>
+	</section>
+</body>
+<script>
+	const debug = (...x) => {
+		for (let i = 0; i < x.length; i++) {
+			document.body.append(tag("br"), JSON.stringify(x[i]));
+		}
+	};
+	
+	const signalShow = new Event("show");
+	const signalHide = new Event("hide");
+	
+	class BMWindow {
+		
+		constructor () {
+			this.panel = tag("section", { className: "mnbm-window" });
+			this.panel.innerHTML = `
+				<div class="mnbm-content">
+					<div class="mnbm-header">
+						<div class="mnbm-drag"> </div>
+						<div class="mnbm-control-panel"> </div>
+						<button class="mnbm-close"> X </button>
+					</div>
+					<div class="mnbm-body">
+						<div class="mnbm-container">
+							<ul class="mnbm-list"> </ul>
+						</div>
+					</div>
+				</div>
+				<div class="mnbm-bg"> </div>
+			`;
+			this.visible = false;
+			
+			this.panel.querySelector(".mnbm-drag").addEventListener("touchmove", async (e) => this.onTouchMoved(e));
+			this.panel.querySelector(".mnbm-bg").addEventListener("touchmove", async (e) => this.onTouchMoved(e));
+			this.panel.querySelector(".mnbm-close").addEventListener("click", (e) => this.hide());
+		}
+		
+		show() {
+			if (!this.visible) document.body.append(this.panel);
+			this.visible = true;
+			this.panel.dispatchEvent(signalShow);
+		}
+		
+		hide() {
+			if (this.visible) this.panel.remove();
+			this.visible = false;
+			this.panel.dispatchEvent(signalHide);
+		}
+		
+		async onTouchMoved(event) {
+			const x = (event.touches[0].clientX / (this.panel.offsetWidth * 2));
+			const y = ((event.touches[0].clientY + this.panel.offsetHeight / 2 - 16) / (this.panel.offsetHeight * 2));
+			this.panel.style.left = x * 100 +  "%";
+			this.panel.style.top = y * 100 + "%";
+		}
+		
+		setContent(controlPanel, list) {
+			this.panel.querySelector(".mnbm-control-panel").replaceWith(controlPanel);
+			this.panel.querySelector(".mnbm-list").replaceWith(list);
+		}
+	}
+	
+	const signalChanged = new Event("regexchange");
+   
+	class RegexManager {
+		
+		constructor() {
+			this.controlPanel = tag("div", {className: "mnbm-control-panel"});
+			this.controlPanel.innerHTML = `
+		    <button class="mnbm-back" data-action="back"> ≪ </button>
+		    <button class="mnbm-regex-add" data-action="regex-add"> (+.*) </button>
+			`;
+			this.list = tag("ul", { className: "mnbm-list" });
+			this.visible = false;
+			
+			this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.addRegex() });
+			
+			this.list.addEventListener("click", async (e) => {
+	      const target = e.target.closest("[data-action]");
+	      if (!target) return;
+	
+	      switch (target.dataset.action) {
+	        case "erase":
+	        	target.parentElement.remove();
+	        	return;
+	      }
+			});
+			
+			this.list.addEventListener("dbclick", async (e) => {
+	      const target = e.target.closest("[data-disabled]");
+	      if (!target) return;
+	
+	      switch (target.dataset.disabled) {
+	        case "true":
+	        	target.style.opacity = 0.5;
+	        	target.dataset.disabled = "false";
+	        	return;
+	        case "false":
+	        	target.style.opacity = 1;
+	        	target.dataset.disabled = "true";
+	        	return;
+	      }
+			});
+		}
+		
+		addRegex(rgx = "", sm = "") {
+			const listItem = `
+		    <li class="mnbm-item" data-disabled="false">
+		      <input placeholder="RegEx: e.g com\\.termux" />
+		      <input placeholder="SliceMatch: e.g ::" />
+		      <button class="mnbm-erase" data-action="erase"> X </button>
+		    </li>
+			`;
+			this.list.insertAdjacentHTML("beforeend", listItem);
+			this.list.lastElementChild.firstElementChild.value = rgx;
+			this.list.lastElementChild.children.item(1).value = sm;
+		}
+		
+		getRegex() {
+			const chn = this.list.children;
+			const arr = [];
+			for (let i = 0; i < chn.length; i++) {
+				arr.push([chn.firstElementChild.value, chn.children.item(1).value]);
+			}
+			return arr;
+		}
+		
+		format(x) {
+			const chn = this.list.children;
+			
+			for (let i = 0; i < chn.length; i++) {
+				if (chn.item(i).dataset.disabled == "true") continue;
+				const r = new RegExp(chn.item(i).firstElementChild.value);
+				// r.test(x)
+				if (x.search(r) > -1) x = x.split(chn.item(i).children.item(1).value).pop();
+			}
+		  return x;
+		}
+	}
+   
+    class DataManager {
+		
+		constructor () {
+			this.controlPanel = tag("div", { className: "mnbm-control-panel" });
+			this.controlPanel.innerHTML = `
+				<button class="mnbm-back" data-action="back"> ≪ </button>
+				<button class="mnbm-check-files" data-action="check-files"> (...) </button>
+				<button class="mnbm-regex-visible" data-action="regex-visible"> (.*) </button>
+			`;
+			this.list = document.body.querySelector(".mnbm-list"); // tag("ul", { className: "mnbm-list" });
+			//this.list.innerHTML ="";
+			this.focus;
+			this.regexManager = new RegexManager();
+			this.visible = false;
+			
+			this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.toggleRegex() });
+			this.regexManager.controlPanel.firstElementChild.addEventListener("click", (e) => { this.toggleRegex() });
+		}
+		
+		addFile(id, loc, fn) {
+			const arrLoc = this.pathSplit(loc);
+			const folder = this.getFolder(this.list, arrLoc, 0, true);
+			const file = this.newFile(id, fn);
+			folder.append(newFile);
+			this.sortFolder(folder);
+			/*
+			var folder = this.list.firstElementChild;
+			if (!folder) {
+				debug("FIRST");
+				folder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(loc), dataset: { path: loc } });
+				folder.append(newFile);
+				this.list.append(folder);
+				return;
+			};
+			var idxLoc = 0;
+			while (folder) {
+				if (folder.className != "mnbm-folder") {
+					folder = folder.nextElementSibling;
+					continue;
+				};
+				const fpath = this.pathSplit(folder.dataset.path);
+				debug("AB", [arrLoc, fpath]);
+				if (arrLoc[0] != fpath[0]) {
+					folder = folder.nextElementSibling;
+					continue;
+				};
+				for (let i = 0; i < fpath.length; i++) {
+					if (fpath[i] == arrLoc[idxLoc + i]) {
+						if (idxLoc + i == arrLoc.length - 1) {
+							if (i == fpath.length - 1) {
+								debug("SIBLING", arrLoc, fpath, [arrLoc.length, fpath.length, idxLoc, i]);
+								folder.append(newFile);
+								return;
+							};
+						};
+						if (i == fpath.length - 1) {
+							debug("DEEP", arrLoc, fpath, [arrLoc.length, fpath.length, idxLoc, i]);
+							const dpath = arrLoc.slice(fpath.length).reduce((a, b) => a + b, "");
+							const ex = this.getFolder(folder, dpath);
+							debug(ex ? "DEEPEXIST" : "DEEPNULL");
+							if (ex) {
+								ex.append(newFile);
+								return;
+							}
+							const deepFolder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(dpath), dataset: { path: dpath } });
+							deepFolder.append(newFile);
+							folder.append(deepFolder);
+							return;
+						};
+					} else {
+						debug("BETWEEN");
+						this.insertFile(newFile, folder, i);
+						return;
+					};
+				}
+				folder = folder.firstElementChild;
+				idxLoc += fpath.length;
+			}
+			debug("NEW");
+			folder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(loc), dataset: { path: loc } });
+			folder.append(newFile);
+			this.list.append(folder);
+			*/
+		}
+		
+		newFolder(path) { return tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(path), dataset: { path: path }) }
+		
+		newFile(id, fn) {
+			const e = tag("div", { className: "mnbm-file", dataset: { id: id, invalid: "false" } });
+			e.innerHTML = `
+				<p class="mnbm-prefix"> </p>
+				<p class="mnbm-text"> </p>
+				<button class="mnbm-erase" data-action="erase"> X </button>
+			`;
+			e.firstElementChild.innerText = "-1";
+			e.children.item(1).innerText = fn;
+			return e;
+		}
+		
+		insertFile(file, folder, deep) {
+			const fPath = this.pathSplit(folder.dataset.path);
+			const nfPath = fPath.slice(deep).reduce((a, b) => a + b, "");
+			const parentPath = fPath.slice(0, deep).reduce((a, b) => a + b, "");
+			const parentFolder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(parentPath), dataset: { path: parentPath } });
+			folder.replaceWith(parentFolder);
+			parentFolder.append(file, folder);
+			folder.dataset.path = nfPath;
+			folder.innerText = this.regexManager.format(nfPath);
+		}
+		
+		removeFile(file) {
+			var folder = file.parentElement;
+			if (folder.childElementCount > 1) {
+				file.remove();
+				return;
+			};
+			while (folder.childElementCount <= 1 && folder.parentElement.className == "mnbm-folder") { folder = folder.parentElement }
+			folder.remove();
+		}
+		
+		tryFocus(id) {
+			const files = this.list.querySelectorAll(".mnbm-file");
+			if (this.focus) this.focus.style.background = this.focus.dataset.invalid == "true" ? "#c8141433" : "#ffffff66";
+			this.focus = null;
+			for (let i = 0; i < files.length; i++) {
+				if (files[i].dataset.id == id) {
+					this.focus = files[i];
+					const focused = this.focus.dataset.id == editorManager.activeFile.id;
+					if (focused) this.focus.style.background = "#c8c8ff66";
+					return;
+				};
+			}
+		}
+		
+		toggleRegex() {
+			if (!this.visible && !this.regexManager.visible) return;
+			if (this.regexManager.visible) {
+				this.regexManager.controlPanel.replaceWith(this.controlPanel);
+				this.regexManager.list.replaceWith(this.list);
+			} else {
+				this.controlPanel.replaceWith(this.regexManager.controlPanel);
+				this.list.replaceWith(this.regexManager.list);
+			}
+			this.regexManager.visible = !this.regexManager.visible;
+			this.visible = !this.visible;
+		}
+		
+		getFile(id) {
+			const files = this.list.querySelectorAll(".mnbm-file");
+			for (let i = 0; i < files.length; i++) {
+				if (files[i].dataset.id == id) return files[i];
+			}
+			return null;
+		}
+		
+		getFolder(fromFolder, arrLoc, idxLoc, create = false) {
+			const arrLoc = this.pathSplit(toLoc);
+			var folder = fromFolder.firstElementChild;
+			var idxLoc = 0;
+			//debug("GETFOLDER", fromFolder.dataset, toLoc, folder.dataset, arrLoc)
+			while (folder) {
+				if (folder.className != "mnbm-folder") {
+					if (!folder.nextElementSibling) {
+						folder = folder.parentElement;
+						const npPath = arrLoc.slice(0, idxLoc).reduce((a, b) => a + b, "");
+						const newPath = arrLoc.slice(idxLoc).reduce((a, b) => a + b, "");
+						const newFolder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(newPath), dataset: { path: newPath } });
+						folder.append(newFolder);
+						if (folder.className == "mnbm-folder") {
+							return newFolder;
+							folder.dataset.path = npPath;
+							folder.firstChild.textContent = this.regexManager.format(npPath);
+							//folder.innerText = this.regexManager.format(npPath);
+						}
+						debug("DEEPIEND");//, folder.dataset, folder.dataset);
+						return newFolder;
+					};
+					folder = folder.nextElementSibling;
+					//debug("GETFOLDER0", folder?.dataset);
+					continue;
+				};
+				const fpath = this.pathSplit(folder.dataset.path);
+				//debug("GETFOLDERI", arrLoc, fpath)
+				if (arrLoc[0] != fpath[0]) {
+					folder = folder.nextElementSibling;
+					continue;
+				};
+				for (let i = 0; i < fpath.length; i++) {
+					if (arrLoc[idxLoc + i] == fpath[i]) {
+						if (idxLoc + i == arrLoc.length - 1) {
+							if (i == fpath.length - 1) {
+								return folder;
+							}
+						}
+						continue;
+					}
+					if (create) {
+						
+					};
+					return null;
+				}
+				folder = folder.firstElementChild;
+				idxLoc += fpath.length;
+			}
+			debug("DEPPEND");
+			
+			return null;
+		}
+		
+		sortFolder(folder) {
+			const children = folder.children;
+			const folders = [];
+			const files = [];
+			for (let i = 0; i < children.length; i++) {
+				children[i].remove();
+				if (children[i].className == "mnbm-folder") {
+					folders.push(children[i]);
+					continue;
+				}
+				files.push(children[i]);
+			}
+			folders.sort((a, b) => a.dataset.path - b.dataset.path);
+			files.sort((a, b) => this.fileText(a) - this.fileText(b));
+			for (let i = 0; i < folders.length; i++) {
+				folder.append(folders[j])
+			}
+			for (let i = 0; i < files.length; i++) {
+				folder.append(files[i]);
+			}
+		}
+		
+		fileText(file) { return file.children.item(1).innerText }
+		
+		pathSplit(path) {
+			const split = [""];
+			for (let i = 0; i < path.length; i++) {
+				split[split.length - 1] += path[i];
+				if (path[i] == "/" && path.length - 1 != i && path[i + 1] != "/") split.push("");
+			}
+			return split;
+		}
+		
+		splitReduce(split, from = 0, to = split.length) { return split.slice(from, to).reduce((a, b) => a + b, "") }
+	}
+	
+	//INIT
+    
+    const w = new BMWindow();
+    const dt = new DataManager();
+    
+    const dw = document.body.querySelector(".mnbm-window");
+    w.show();
+    w.setContent(document.body.querySelector(".mnbm-control-panel"), document.body.querySelector(".mnbm-list"))
+    dw.replaceWith(w);
+    
+    dt.list.innerHTML = "";
+    
+    dt.addFile("id0", "path0/", "nameless");
+    dt.addFile("id1", "path0/", "nameless1");
+    dt.addFile("id2", "path0/path0/", "nameless2");
+    dt.addFile("id3", "path0/path0/", "nameless3");
+    dt.addFile("id4", "path0/path0/path0/", "nameless4");
+    dt.addFile("id5", "path0/path0/path1/", "nameless5");
+</script>

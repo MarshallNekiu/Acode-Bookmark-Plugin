@@ -37,13 +37,16 @@ export default class DataManager {
 		const newFile = this.newFile(id, fn);
 		var folder = this.list.firstElementChild;
 		if (!folder) {
-			folder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(loc), dataset{ path: loc } });
+			folder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(loc), dataset: { path: loc } });
 			folder.append(newFile); /* SCSS .mnbm-file { display: block // FOR UL.LOC } */
 			this.list.append(folder);
 			return;
 		};
 		var idxLoc = 0;
 		while (folder) {
+			if (folder.className != "mnbm-folder") {
+				folder = folder.nextElementSibling;
+			}
 			const fpath = this.pathSplit(folder.dataset.path);
 			var deepPath = false;
 			for (let i = 0; i < fpath.length; i++) {
@@ -136,7 +139,7 @@ export default class DataManager {
 		const split = [""];
 		for (let i = 0; i < path.length - 1; i++) {
 			split[-1] += path[i];
-			if (path[i] == "/" && != path[i + 1] == "/") split.push([""]);
+			if (path[i] == "/" && path[i + 1] != "/") split.push([""]);
 		}
 		return split;
 	}
