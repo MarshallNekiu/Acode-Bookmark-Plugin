@@ -155,7 +155,7 @@
 						text-align: center;
 						padding-left: 8px;
 						padding-right: 8px;
-						eft: auto;
+						margin-left: auto;
 						z-index: 1;
 					}
 				}
@@ -173,6 +173,7 @@
 							margin-top: 0px;
 							list-style: none;
 							//height:100%;
+							padding-left: 0px;
 		
 		
 		
@@ -574,7 +575,7 @@
 				<p class="mnbm-text"> </p>
 				<button class="mnbm-erase" data-action="erase"> X </button>
 			`;
-			e.firstElementChild.innerText = "-1";
+			e.firstElementChild.innerText = "-";
 			e.children.item(1).innerText = fn;
 			return e;
 		}
@@ -727,6 +728,60 @@
 			for (let i = 0; i < folders.length; i++) { folder.append(folders[i]) }
 		}
 		
+		getTree() {
+			if (!this.list.firstElementChild) return [];
+			const files = this.list.querySelectorAll(".mnbm-file");
+			const map = [];
+			for (let i = 0; i < files.length; i++) {
+				var folder = files[i].parentElement;
+				var path = "";
+				while (folder.className == "mnbm-folder") {
+					path = folder.dataset.path + path;
+					folder = folder.parentElement;
+				}
+				map.push([-1, path, this.fileText(files[i]), files[i].dataset.id]);
+			}
+			
+			const tree = [];
+			
+			for (let i = 0; i < map.length; i++) {
+				var x = true;
+				
+				for (let j = i - 1; j >= 0; j--) {
+					if (map[i][1].startsWith(map[j][1])) {
+						tree.push([j, map[i][1].slice(map[j][1].length), map[i][2], map[i][3]]);
+						x = false;
+						break;
+					}
+				}
+				if (x) tree.push([i, map[i][1], map[i][2], map[i][3]]);
+			}
+			
+			for (let i = 0; i < tree.length; i++) {
+				debug(map[i] + " ===> " + tree[i], ".");
+			}
+			
+			return tree;
+		}
+		
+		setTree(tree) {
+			this.list.innerText = "";
+			for (let i = 0; i < tree.length; i++) {
+				if (tree[i][0] == i) {
+					this.addFile(tree[i][3], tree[i][1], tree[i][2]);
+					continue;
+				};
+				var path = "";
+				var j = i;
+				while (tree[j][0] != j) {
+					path = tree[j][1] + path;
+					j = tree[j][0];
+				}
+				path = tree[j][1] + path;
+				this.addFile(tree[i][3], path, tree[i][2]);
+			}
+		}
+		
 		fileText(file) { return file.children.item(1).innerText }
 		
 		pathSplit(path) {
@@ -767,6 +822,7 @@
     	dt.regexManager.addRegex(regex[i][0], regex[i][1]);
     }
     
+    /*
     dt.addFile("id0", "path0/path0/", "nameless");
     dt.addFile("id1", "path0/path0/path0/", "nameless1");
     dt.addFile("id2", "path0/path1/path0/", "nameless2");
@@ -775,4 +831,19 @@
    	dt.addFile("id4", "path0/path1/path0/path1/path0/", "nameless4");
    	dt.addFile("id6", "path0/", "nameless6");
    	dt.addFile("id7", "content://com.termux.documents/tree/%2Fdata%2Fdata%2Fcom.termux%2Ffiles%2Fhome%2FAcode-Bookmark-Plugin%2F/::data/data/src", "nameless7");
+   	*/
+   	
+   	dt.addFile("id0", "path0/path0/", "nameless");
+    dt.addFile("id1", "path0/path0/path0/", "nameless1");
+    dt.addFile("id2", "path0/path0/path0/", "nameless2");
+    dt.addFile("id3", "path0/path1/", "nameless3");
+   	dt.addFile("id4", "path0/path1/path0/path1/", "nameless4");
+   	dt.addFile("id5", "path0/path1/path0/path1/", "nameless5");
+   	dt.addFile("id6", "path0/path0/", "nameless6");
+   	dt.addFile("id7", "path0/", "nameless7");
+   	//dt.addFile("id7", "content://com.termux.documents/tree/%2Fdata%2Fdata%2Fcom.termux%2Ffiles%2Fhome%2FAcode-Bookmark-Plugin%2F/::data/data/src", "nameless7");
+   	
+   	const tree = dt.getTree();
+   	//dt.list.innerHTML = "";
+   	dt.setTree(tree);
 </script>
