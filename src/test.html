@@ -67,7 +67,7 @@
 					display: flex;
 					position: relative;
 					padding: 2px;
-					background: rgba(255,255,255,0.102);
+					background: rgba(255,255,255,0.1);
 					border-radius: 3px;
 		
 					.mnbm-control-panel {
@@ -141,7 +141,7 @@
 						width: 100%;
 						height: 100%;
 						//z-index: -1;
-						//background: rgba(255,255,255,0.102);
+						//background: rgba(255,255,255,0.1);
 						border-radius: 3px;
 						//padding: 2px;
 		
@@ -155,7 +155,7 @@
 						text-align: center;
 						padding-left: 8px;
 						padding-right: 8px;
-						margin-left: auto;
+						eft: auto;
 						z-index: 1;
 					}
 				}
@@ -177,8 +177,9 @@
 		
 		
 							.mnbm-folder {
-								background:gray;
-								padding-left:3%;
+								//margin-left: 2%;
+								background:rgba(255, 255, 200, 0.1);
+								padding-left: 2%;
 								//font-size:16px;
 								padding-top: 0px;
 		
@@ -488,7 +489,6 @@
 				<button class="mnbm-regex-visible" data-action="regex-visible"> (.*) </button>
 			`;
 			this.list = document.body.querySelector(".mnbm-list"); // tag("ul", { className: "mnbm-list" });
-			//this.list.innerHTML ="";
 			this.focus;
 			this.regexManager = new RegexManager();
 			this.visible = false;
@@ -501,8 +501,10 @@
 			const arrLoc = this.pathSplit(loc);
 			const folder = this.getFolder(this.list, arrLoc, 0, true);
 			const file = this.newFile(id, fn);
-			folder.append(newFile);
+			folder.append(file);
 			this.sortFolder(folder);
+			this.sortFolder(folder.parentElement);
+			this.sortFolder(this.list);
 			/*
 			var folder = this.list.firstElementChild;
 			if (!folder) {
@@ -563,7 +565,7 @@
 			*/
 		}
 		
-		newFolder(path) { return tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(path), dataset: { path: path }) }
+		newFolder(path) { return tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(path), dataset: { path: path } } ) }
 		
 		newFile(id, fn) {
 			const e = tag("div", { className: "mnbm-file", dataset: { id: id, invalid: "false" } });
@@ -586,6 +588,17 @@
 			parentFolder.append(file, folder);
 			folder.dataset.path = nfPath;
 			folder.innerText = this.regexManager.format(nfPath);
+		}
+		
+		sliceFolder(folder, deep) {
+			const fPath = this.pathSplit(folder.dataset.path);
+			const lPath = this.splitReduce(fPath, 0, deep);
+			const rPath = this.splitReduce(fPath, deep);
+			const lFolder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(lPath), dataset: { path: lPath } });
+			folder.parentElement.insertBefore(lFolder, folder);
+			lFolder.append(folder);
+			folder.dataset.path = rPath;
+			folder.firstChild.textContent = this.regexManager.format(rPath);
 		}
 		
 		removeFile(file) {
@@ -634,57 +647,67 @@
 		}
 		
 		getFolder(fromFolder, arrLoc, idxLoc, create = false) {
-			const arrLoc = this.pathSplit(toLoc);
 			var folder = fromFolder.firstElementChild;
-			var idxLoc = 0;
-			//debug("GETFOLDER", fromFolder.dataset, toLoc, folder.dataset, arrLoc)
-			while (folder) {
-				if (folder.className != "mnbm-folder") {
-					if (!folder.nextElementSibling) {
-						folder = folder.parentElement;
-						const npPath = arrLoc.slice(0, idxLoc).reduce((a, b) => a + b, "");
-						const newPath = arrLoc.slice(idxLoc).reduce((a, b) => a + b, "");
-						const newFolder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(newPath), dataset: { path: newPath } });
-						folder.append(newFolder);
-						if (folder.className == "mnbm-folder") {
-							return newFolder;
-							folder.dataset.path = npPath;
-							folder.firstChild.textContent = this.regexManager.format(npPath);
-							//folder.innerText = this.regexManager.format(npPath);
-						}
-						debug("DEEPIEND");//, folder.dataset, folder.dataset);
-						return newFolder;
-					};
-					folder = folder.nextElementSibling;
-					//debug("GETFOLDER0", folder?.dataset);
-					continue;
-				};
-				const fpath = this.pathSplit(folder.dataset.path);
-				//debug("GETFOLDERI", arrLoc, fpath)
-				if (arrLoc[0] != fpath[0]) {
-					folder = folder.nextElementSibling;
-					continue;
-				};
-				for (let i = 0; i < fpath.length; i++) {
-					if (arrLoc[idxLoc + i] == fpath[i]) {
-						if (idxLoc + i == arrLoc.length - 1) {
-							if (i == fpath.length - 1) {
-								return folder;
-							}
-						}
-						continue;
-					}
-					if (create) {
-						
-					};
-					return null;
-				}
-				folder = folder.firstElementChild;
-				idxLoc += fpath.length;
-			}
-			debug("DEPPEND");
 			
-			return null;
+			while (folder) {
+				const FOLDER_PREV = folder.parentElement;
+				const FOLDER_NEXT = folder.nextElementSibling;
+				const FOLDER_DEEP = folder.firstElementChild;
+				
+				if (folder.className != "mnbm-folder") {
+					if (!FOLDER_NEXT) {
+						if (!create) return null;
+						folder = this.newFolder(this.splitReduce(arrLoc, idxLoc));
+						FOLDER_PREV.append(folder);
+						return folder;
+					}
+					folder = FOLDER_NEXT;
+					continue;
+				};
+				
+				const fpath = this.pathSplit(folder.dataset.path);
+				
+				for (let i = 0; i < fpath.length; i++) {
+					const [FOLDER_FOUND, REQUEST_LIMIT, FOLDER_LIMIT, FIRST_FOLDER] = [
+						arrLoc[idxLoc + i] == fpath[i],
+						idxLoc + i == arrLoc.length - 1,
+						i == fpath.length - 1,
+						i == 0
+					];
+					
+					if (FOLDER_FOUND) {
+						if (REQUEST_LIMIT) {
+							if (FOLDER_LIMIT) return folder; // EXACT PATH
+							this.sliceFolder(folder, i + 1);
+							return folder.parentElement; // FOLDER IN-BETWEEN
+						};
+						if (FOLDER_LIMIT) {
+							folder = FOLDER_DEEP; // EXPECTED NEVER EMPTY FOLDER
+							idxLoc += fpath.length;
+							break;
+						};
+					};
+					if (!FOLDER_FOUND) {
+						if (FIRST_FOLDER) {
+							if (!FOLDER_NEXT) {
+								if (!create) return null;
+								folder = this.newFolder(this.splitReduce(arrLoc, idxLoc));
+								FOLDER_PREV.append(folder);
+								return folder; // NEW SIBLING PATH
+							};
+							folder = FOLDER_NEXT;
+							break;
+						};
+						this.sliceFolder(folder, i);
+						folder.parentElement.append(this.newFolder(this.splitReduce(arrLoc, idxLoc + i)));
+						return folder.parentElement.lastElementChild; // NEW IN-BETWEEN FOLDER
+					};
+				}
+			}
+			if (!create) return null;
+			folder = this.newFolder(this.splitReduce(arrLoc, idxLoc));
+			fromFolder.append(folder);
+			return folder;
 		}
 		
 		sortFolder(folder) {
@@ -692,21 +715,16 @@
 			const folders = [];
 			const files = [];
 			for (let i = 0; i < children.length; i++) {
-				children[i].remove();
 				if (children[i].className == "mnbm-folder") {
 					folders.push(children[i]);
 					continue;
-				}
+				};
 				files.push(children[i]);
 			}
-			folders.sort((a, b) => a.dataset.path - b.dataset.path);
-			files.sort((a, b) => this.fileText(a) - this.fileText(b));
-			for (let i = 0; i < folders.length; i++) {
-				folder.append(folders[j])
-			}
-			for (let i = 0; i < files.length; i++) {
-				folder.append(files[i]);
-			}
+			folders.sort((a, b) => a.dataset.path.localeCompare(b.dataset.path));
+			files.sort((a, b) => this.fileText(a).localeCompare(this.fileText(b)));
+			for (let i = 0; i < files.length; i++) { folder.append(files[i]) }
+			for (let i = 0; i < folders.length; i++) { folder.append(folders[i]) }
 		}
 		
 		fileText(file) { return file.children.item(1).innerText }
@@ -735,10 +753,26 @@
     
     dt.list.innerHTML = "";
     
-    dt.addFile("id0", "path0/", "nameless");
-    dt.addFile("id1", "path0/", "nameless1");
-    dt.addFile("id2", "path0/path0/", "nameless2");
-    dt.addFile("id3", "path0/path0/", "nameless3");
-    dt.addFile("id4", "path0/path0/path0/", "nameless4");
-    dt.addFile("id5", "path0/path0/path1/", "nameless5");
+    var s = "path0/";
+    
+    for (let i = 0; i < 0; i++) {
+    	dt.addFile("id" + i, s, "nameless" + i);
+    	dt.addFile("id" + (32 + i), s, "nameless" + (64 + i));
+    	s += "path0/";
+    }
+    
+    const regex = [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
+    
+    for (let i = 0; i < regex.length; i++) {
+    	dt.regexManager.addRegex(regex[i][0], regex[i][1]);
+    }
+    
+    dt.addFile("id0", "path0/path0/", "nameless");
+    dt.addFile("id1", "path0/path0/path0/", "nameless1");
+    dt.addFile("id2", "path0/path1/path0/", "nameless2");
+    dt.addFile("id3", "path0/path1/", "nameless3");
+   	dt.addFile("id5", "path0/path1/path0/path1/", "nameless5");
+   	dt.addFile("id4", "path0/path1/path0/path1/path0/", "nameless4");
+   	dt.addFile("id6", "path0/", "nameless6");
+   	dt.addFile("id7", "content://com.termux.documents/tree/%2Fdata%2Fdata%2Fcom.termux%2Ffiles%2Fhome%2FAcode-Bookmark-Plugin%2F/::data/data/src", "nameless7");
 </script>
