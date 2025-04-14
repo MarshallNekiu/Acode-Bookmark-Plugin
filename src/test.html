@@ -852,6 +852,12 @@
    	dt.addFile("id7", "content://com.termux.documents/tree/%2Fdata%2Fdata%2Fcom.termux%2Ffiles%2Fhome%2FAcode-Bookmark-Plugin%2F/::data/data/src", "nameless7");
    	*/
    	
+  	dt.addFile("id8", "", "nameless8");
+  	dt.addFile("id9", "", "nameless9");
+  	const tt = dt.getTree();
+  	debug(Array.from(tt));
+  	dt.setTree(tt);
+  	/*
    	dt.addFile("id0", "path0/path0/", "nameless");
     dt.addFile("id1", "path0/path0/path0/", "nameless1");
     dt.addFile("id2", "path0/path0/path0/", "nameless2");
@@ -860,18 +866,16 @@
    	dt.addFile("id5", "path0/path1/path0/path1/", "nameless5");
    	dt.addFile("id6", "path0/path0/", "nameless6");
    	dt.addFile("id7", "path0/", "nameless7");
-  	dt.addFile("id8", "", "nameless8");
-  	dt.addFile("id9", "", "nameless9");
    	//dt.addFile("id7", "content://com.termux.documents/tree/%2Fdata%2Fdata%2Fcom.termux%2Ffiles%2Fhome%2FAcode-Bookmark-Plugin%2F/::data/data/src", "nameless7");
    	debug("TREE");
-   	
+   	*/
    	
    	debug(...Array.from(dt.getTree(true)));
    	const r = [9,6,8,3,4];
    	
    	for (let i = 0; i < r.length; i++) {
-		if (r[i] % 2 == 0) dt.addFile("id+" + r[i], "path0/path1/path0/", "nameless+" + r[i]);
-		dt.removeFile(dt.getFile("id" + r[i]));
+		//if (r[i] % 2 == 0) //dt.addFile("id+" + r[i], "path0/path1/path0/", "nameless+" + r[i]);
+		//dt.removeFile(dt.getFile("id" + r[i]));
    	}
    	
    	debug("=>", ...Array.from(dt.getTree(true)));
@@ -883,7 +887,7 @@
    	for (let i = 0; i < 32; i++) {
    		path += "path0/";
    		if ([6, 12, 23, 24].includes(i)) path = path.slice(0, -12) + "path1/"
-   		dt.addFile("id" + i, path, "name" + i);
+   		//dt.addFile("id" + i, path, "name" + i);
    	}
    	
 </script>

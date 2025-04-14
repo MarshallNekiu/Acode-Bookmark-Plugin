@@ -215,6 +215,7 @@ class RegexManager {
 class DataManager {
 	
 	constructor () {
+		this.nn = "dt";
 		this.controlPanel = tag("div", { className: "mnbm-control-panel" });
 		this.controlPanel.innerHTML = `
 			<button class="mnbm-back" data-action="back"> ≪ </button>
@@ -240,17 +241,24 @@ class DataManager {
 		this.sortFolder(this.list);
 	}
 	
-	newFolder(path) { return tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(path), dataset: { path: path } } ) }
+	newFolder(path) {
+		return tag("ul", {
+			className: "mnbm-folder",
+			"path": loc,
+			innerText: this.regexManager.format(path),
+		});
+	}
 	
-	newFile(id, fn) {
-		const e = tag("div", { className: "mnbm-file", dataset: { id: id, invalid: "false" } });
-		e.innerHTML = `
-			<p class="mnbm-prefix"> </p>
-			<p class="mnbm-text"> </p>
-			<button class="mnbm-erase" data-action="erase"> X </button>
-		`;
-		e.firstElementChild.innerText = "-";
-		e.children.item(1).innerText = fn;
+	newFile(id, name) {
+		const e = tag("div", {
+			className: "mnbm-file",
+			"id": id,
+			"name": name,
+			invalid: false,
+			prefixNode: tag("p", { className: "mnbm-prefix", innerText: "-" }),
+			textNode: tag("p", { className: "mnbm-text", innerText: name })
+		});
+		e.append(e.prefixNode, e.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
 		return e;
 	}
 	
@@ -418,7 +426,6 @@ class DataManager {
 	getTree(uri = false) {
 		const files = this.list.querySelectorAll(".mnbm-file");
 		const map = [];
-		
 		for (let i = 0; i < files.length; i++) {
 			var folder = files[i].parentElement;
 			var path = "";
@@ -426,6 +433,8 @@ class DataManager {
 				path = folder.dataset.path + path;
 				folder = folder.parentElement;
 			}
+			
+			//alert("file", JSON.stringify(files[i].dataset));
 			map.push([files[i].dataset.id, [i, path, this.fileText(files[i])]]);
 		}
 		
@@ -450,7 +459,7 @@ class DataManager {
 	setTree(tree) {
 		this.list.innerHTML = "";
 		const map = Array.from(tree);
-		
+		alert("st", JSON.stringify(map));
 		for (let i = 0; i < map.length; i++) {
 			if (map[i][1][0] == i) {
 				this.addFile(map[i][0], map[i][1][1], map[i][1][2]);
@@ -465,10 +474,24 @@ class DataManager {
 			path = map[j][1][1] + path;
 			this.addFile(map[i][0], path, map[i][1][2]);
 		}
+		alert("gt", JSON.stringify(Array.from(this.getTree())));
 	}
 	
-	async checkFiles() {
-		
+	checkFiles() {
+		const t = this.getTree(true);
+		alert(JSON.stringify(t));
+		/*
+		const tree = new Map(this.getTree(true));
+		alert("tree", Array.from(tree).toString());
+		const aF = editorManager.files;
+		alert("af", aF.toString());
+		for (let i = 0; i < aF.length; i++) {
+			if (!tree.has(aF[i].id)) continue;
+			this.removeFile(this.getFile(aF[i].id));
+			this.addFile(aF[i].id, aF[i].location, aF[i].filename);
+		}
+		const tree2 = new Map(this.getTree(true));
+		*/
 	}
 	
 	applyRegex() {
@@ -478,7 +501,7 @@ class DataManager {
 		}
 	}
 	
-	fileText(file) { return file.children.item(1).innerText }
+	fileText(file) { return file.dataset.name }
 	
 	pathSplit(path) {
 		const split = [""];
@@ -555,6 +578,7 @@ class Debugger {
 class BookmarkPlugin {
 	
   constructor() {
+  	this.nn = "bm";
     this.fsData;
     this.data = { plugin: { version: "1.2.3" }, file: new Map(), regex: [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
     this.file = editorManager.activeFile;
@@ -730,7 +754,7 @@ class BookmarkPlugin {
     });
     //alert("ev1");
     //DATA MANAGER
-    dtManager.controlPanel.addEventListener("click", async (e) => {
+    dtManager.controlPanel.addEventListener("click", (e) => {
       const target = e.target.closest("[data-action]");
       if (!target) return;
 
@@ -900,13 +924,20 @@ class BookmarkPlugin {
     }
     const tree = new Map();
     data.file.forEach((v, k) => {
+    	debugManager.log(k + " : " + JSON.stringify(v));
     	tree.set(k, v.uri);
+    	debugManager.log(tree.get(k));
     });
     //alert("r1", JSON.stringify([Array.from(tree), Array.from(data.file)]));
     dtManager.setTree(tree);
     //alert("r1b", data.file.toString());
-    const inF = editorManager.files;
+    /*const inF = editorManager.files;
+    debugManager.log(inF + " - " + initFiles);
     for (let i = 0; i < inF.length; i++) {
+    	debugManager.log(inF[i].id);
+    	debugManager.log(inF[i].filename);
+    	debugManager.log(inF[i].location);
+    	debugManager.log(`${ data.file.get(inF[i].id) }`);
     	if (!data.file.has(inF[i].id)) continue;
     	dtManager.removeFile(dtManager.getFile(inF[i].id));
     	dtManager.addFile(inF[i].id, inF[i].location, inF[i].filename);
@@ -915,7 +946,7 @@ class BookmarkPlugin {
     const tree2 = dtManager.getTree();
     tree2.forEach((v, k) => {
     	data.file.get(k).uri = v;
-    });
+    });*/
     //alert("r3");
     const style = this.style;
     style.type = "text/css";
