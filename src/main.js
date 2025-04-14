@@ -408,7 +408,7 @@ class DataManager {
 	
 	filePath(file) {
 		var folder = file.parentElement;
-		const path = "";
+		var path = "";
 		while (folder.parentElement.className == "mnbm-folder") {
 			path = folder.dataset.path + path;
 			folder = folder.parentElement;
@@ -470,6 +470,13 @@ class DataManager {
 	
 	async checkFiles() {
 		
+	}
+	
+	applyRegex() {
+		const folders = this.list.querySelectorAll(".mnbm-folder");
+		for (let i = 0; i < folders.length; i++) {
+			folders[i].firstChild.textContent = this.regexManager.format(folders[i].dataset.path);
+		}
 	}
 	
 	fileText(file) { return file.children.item(1).innerText }
@@ -575,8 +582,8 @@ class BookmarkPlugin {
   async init() {
     const self = this;
     const fsData = this.fsData = await fs(window.DATA_STORAGE + "bookmark.json");
-    
     if (!await fsData.exists()) await fs(window.DATA_STORAGE).createFile("bookmark.json", JSON.stringify({ plugin: this.data.plugin, file: [], regex: this.data.regex }));
+    
     const dataRaw = await fsData.readFile("utf8");
     const data = dataRaw.startsWith('{"p') ? JSON.parse(dataRaw) : this.data;
     
@@ -675,10 +682,10 @@ class BookmarkPlugin {
 				this.data.file.set(f.id, { uri: this.data.file.get(f.id).uri, array: [...this.array] });
 			} else {
 				dtManager.addFile(f.id, f.location, f.filename);
-				const tree = Array.from(dtManager.getTree());
-				for (let i = 0; i < tree.length; i++) {
-					this.data.file.set(tree[i][0], { uri: tree[i][1], array: this.data.file.get(tree[i][0])?.array ?? [] });
-				}
+				const tree = dtManager.getTree();
+				tree.forEach((v, k) => {
+					this.data.file.set(k, { uri: v, array: this.data.file.get(k)?.array ?? [] });
+				});
 				this.data.file.get(f.id).array = [...this.array];
 			};
 			if (this.array.length == 0) {
@@ -757,6 +764,7 @@ class BookmarkPlugin {
     
     dtManager.regexManager.list.addEventListener("input", (event) => {
     	data.regex = dtManager.regexManager.getRegex();
+    	dtManager.applyRegex();
     });
     
     //DEBUG MANAGER
@@ -779,7 +787,7 @@ class BookmarkPlugin {
           return;
       }
     });
-    //alert("edevent", "");
+    
     //EDITOR EVENTS
     editorManager.on("new-file", (e) => {
       //debugManager.log("new-file: " + e.id + " : " + e.filename);
@@ -834,25 +842,20 @@ class BookmarkPlugin {
 
     editorManager.on("save-file", async (e) => {
 		const f = this.file;
-		//alert("s0", "");
 		if (this.data.file.has(f.id)) {
-			//alert("s1", "");
 			this.data.file.set(f.id, { uri: this.data.file.get(f.id).uri, array: [...this.array] });
 		} else {
-			//alert("s2", "");
 			dtManager.addFile(f.id, f.location, f.filename);
 			const tree = dtManager.getTree();
-			for (let i = 0; i < tree.length; i++) {
-				this.data.file.set(tree[i][3], { uri: [tree[i][0], tree[i][1], tree[i][2]], array: this.data.file.get(tree[i][3]) ?? [] });
-			}
+			tree.forEach((v, k) => {
+				this.data.file.set(k, { uri: v, array: this.data.file.get(k)?.array ?? [] });
+			});
 			this.data.file.get(f.id).array = [...this.array];
 		};
-		//alert("s3", "");
 		if (this.array.length == 0) {
 			this.data.file.delete(f.id);
 			dtManager.removeFile(dtManager.getFile(f.id));
 		};
-		//alert("s4", f);
 		await this.saveData();
 		this.notify("Bookmark saved");
     });
@@ -861,7 +864,7 @@ class BookmarkPlugin {
       //debugManager.log("remove-file: " + e.id + " : " + e.filename);
       if (this.buffer[e.id]) delete this.buffer[e.id];
     });
-    //alert("change", "");
+    
     editorManager.editor.on("change", (e) => {
       if (e.start.row != e.end.row) {
         var newArray = [];
@@ -891,18 +894,25 @@ class BookmarkPlugin {
 
     bmManager.makeList(this.array);
     this.updateGutter();
-    //alert("bmready", "");
+    
     for (let i = 0; i < data.regex.length; i++) {
     	dtManager.regexManager.addRegex(data.regex[i][0], data.regex[i][1]);
     }
-    const tree = [];
+    const tree = new Map();
     data.file.forEach((v, k) => {
-    	tree.push([v.uri[0], v.uri[1], v.uri[2], k])
+    	tree.set(k, v.uri);
     });
-    alert("tree", tree);
     dtManager.setTree(tree);
-    
-    //alert("dtready", "");
+    const inF = editorManager.initFiles;
+    for (let i = 0; i < inF.length; i++) {
+    	if (!data.file.has(inF[i].id)) continue;
+    	dtManager.removeFile(inF[i].id);
+    	dtManager.addFile(inF[i].id, inF[i].location, inF[i].filename);
+    }
+    const tree2 = dtManager.getTree();
+    tree2.forEach((v, k) => {
+    	data.file.get(k).uri = v;
+    });
     
     const style = this.style;
     style.type = "text/css";
@@ -910,8 +920,6 @@ class BookmarkPlugin {
     document.head.append(style);
     
     this.updateSettings();
-    //alert("setready", "");
-    //const test = await confirm("title", "body");
 
     this.notify("Bookmark Ready");
   }
@@ -922,14 +930,10 @@ class BookmarkPlugin {
     editorManager.editor.commands.removeCommand("toggleBookmark");
     editorManager.editor.commands.removeCommand("previousBookmark");
     editorManager.editor.commands.removeCommand("nextBookmark");
-    //settings.off("update", this.updateSettings);
     delete settings.value[plugin.id];
     settings.update(true);
-    //this.readySB.hide();
-    //this.addSB.hide();
     this.showSB.hide();
     this.window.hide();
-    //if (this.getPanel()) this.removePanel();
     this.style.remove();
   }
 
@@ -1121,15 +1125,12 @@ class BookmarkPlugin {
   }
 
   async saveData() {
-  	//alert("sO", "");
   	const tree = this.dtManager.getTree();
-  	//alert("sA", JSON.stringify(tree));
-  	const map = [];
-  	for (let i = 0; i < tree.length; i++) {
-  		map.push([tree[i][3], { uri: [tree[i][0], tree[i][1], tree[i][2]], array: this.data.file.get(tree[i][3])?.array ?? [] }]);
-  	}
-  	//alert("sB", "");
-    await this.fsData.writeFile(JSON.stringify({ plugin: this.data.plugin, file: map, regex: this.data.regex }));
+  	tree.forEach((v, k) => {
+  		tree.set(k, { uri: v, array: this.data.file.get(k)?.array ?? [] });
+  	});
+  	this.data.file = tree;
+    await this.fsData.writeFile(JSON.stringify({ plugin: this.data.plugin, file: Array.from(tree), regex: this.data.regex }));
   }
 
   updateSettings() {
@@ -1263,17 +1264,6 @@ class BookmarkPlugin {
 }
 
 if (window.acode) {
-	/*
-	const td = tag("div", { className: "class", dataset: { uri: "abc" , chg: "012"} });
-	alert("dataset", td.className);
-	alert("dataset", td.dataset.uri);
-	alert("dataset", td.dataset.chg);
-	td.dataset.chg = "210";
-	alert("dataset", td.dataset.chg);
-	delete td.dataset.chg;
-	alert("dataset", td.dataset.chg);
-	*/
-	
   const bookmarkPlugin = new BookmarkPlugin();
   acode.setPluginInit(
     plugin.id,
