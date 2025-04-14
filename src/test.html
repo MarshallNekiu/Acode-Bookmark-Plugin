@@ -604,12 +604,27 @@
 		
 		removeFile(file) {
 			var folder = file.parentElement;
-			if (folder.childElementCount > 1) {
-				file.remove();
-				return;
-			};
-			while (folder.childElementCount <= 1 && folder.parentElement.className == "mnbm-folder") { folder = folder.parentElement }
-			folder.remove();
+			file.remove();
+			while (folder.parentElement.className == "mnbm-folder") {
+				const parent = folder.parentElement;
+				if (folder.childElementCount == 0) {
+					folder.remove();
+					folder = parent;
+					continue;
+				};
+				if (folder.childElementCount == 1) {
+					const child = folder.firstElementChild;
+					if (child.className == "mnbm-file") break;
+					parent.insertBefore(child, folder);
+					child.dataset.path = folder.dataset.path + child.dataset.path;
+					child.firstChild.textContent = this.regexManager.format(child.dataset.path);
+					folder.remove();
+				};
+				folder = parent?.parentElement;
+				break;
+			}
+			debug(folder?.className + " : " + folder?.childElementCount);
+			if (folder?.childElementCount == 0) folder.remove();
 		}
 		
 		tryFocus(id) {
@@ -728,7 +743,7 @@
 			for (let i = 0; i < folders.length; i++) { folder.append(folders[i]) }
 		}
 		
-		getTree() {
+		getTree(uri = false) {
 			const files = this.list.querySelectorAll(".mnbm-file");
 			const map = [];
 			
@@ -739,8 +754,10 @@
 					path = folder.dataset.path + path;
 					folder = folder.parentElement;
 				}
-				map.push([files[i].dataset.id, [-1, path, this.fileText(files[i])]]);
+				map.push([files[i].dataset.id, [i, path, this.fileText(files[i])]]);
 			}
+			
+			if (uri) return map;
 			
 			const tree = new Map();
 			
@@ -842,15 +859,15 @@
    	//dt.addFile("id7", "content://com.termux.documents/tree/%2Fdata%2Fdata%2Fcom.termux%2Ffiles%2Fhome%2FAcode-Bookmark-Plugin%2F/::data/data/src", "nameless7");
    	debug("TREE");
    	
-   	const tree = dt.getTree();
-   	//dt.list.innerHTML = "";
-   	debug(...Array.from(tree), "=>");
-   	dt.setTree(tree);
-   	debug(...Array.from(dt.getTree()));
-   	debug("==>");
-   	debug(...Array.from(tree), "=>");
-   	dt.setTree(dt.getTree());
-   	debug(...Array.from(dt.getTree()));
    	
+   	debug(...Array.from(dt.getTree(true)));
+   	const r = [0, 2, 4, 7];
+   	
+   	for (let i = 0; i < r.length; i++) {
+		dt.removeFile(dt.getFile("id" + r[i]));
+		dt.removeFile(dt.getFile("id" + (r[i] + 1)));
+   	}
+   	
+   	debug("=>", ...Array.from(dt.getTree(true)));
    	
 </script>
