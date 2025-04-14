@@ -195,14 +195,13 @@ class RegexManager {
 		const chn = this.list.children;
 		const arr = [];
 		for (let i = 0; i < chn.length; i++) {
-			arr.push([chn.firstElementChild.value, chn.children.item(1).value]);
+			arr.push([chn[i].firstElementChild.value, chn[i].children.item(1).value]);
 		}
 		return arr;
 	}
 	
 	format(x) {
 		const chn = this.list.children;
-		
 		for (let i = 0; i < chn.length; i++) {
 			if (chn.item(i).dataset.disabled == "true") continue;
 			const r = new RegExp(chn.item(i).firstElementChild.value);
@@ -308,6 +307,7 @@ class DataManager {
 		if (this.regexManager.visible) {
 			this.regexManager.controlPanel.replaceWith(this.controlPanel);
 			this.regexManager.list.replaceWith(this.list);
+			this.applyRegex();
 		} else {
 			this.controlPanel.replaceWith(this.regexManager.controlPanel);
 			this.list.replaceWith(this.regexManager.list);
@@ -596,7 +596,7 @@ class BookmarkPlugin {
 			}
 			data.file = newDFObj;
 		};
-     	data.regex = data.regex ?? [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
+	 	data.regex = data.regex ?? [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
      	data.plugin.version = "1.2.3";
     }
 	data.file = new Map(data.file);
@@ -689,6 +689,8 @@ class BookmarkPlugin {
 				this.data.file.delete(f.id);
 				dtManager.removeFile(dtManager.getFile(f.id));
 			};
+			this.data.regex = this.dtManager.regexManager.getRegex();
+			this.dtManager.applyRegex();
 			await this.saveData();
 			this.notify("Bookmark saved");
 			return;
@@ -700,6 +702,7 @@ class BookmarkPlugin {
           return;
         case "file":
           bmWindow.setContent(dtManager.controlPanel, dtManager.list);
+          dtManager.applyRegex();
           bmManager.visible = false;
           dtManager.visible = true;
           dtManager.regexManager.visible = false;
@@ -1129,6 +1132,7 @@ class BookmarkPlugin {
   	tree.forEach((v, k) => {
   		tree.set(k, { uri: v, array: this.data.file.get(k)?.array ?? [] });
   	});
+  	this.data.regex = this.dtManager.regexManager.getRegex();
   	this.data.file = tree;
     await this.fsData.writeFile(JSON.stringify({ plugin: this.data.plugin, file: Array.from(tree), regex: this.data.regex }));
   }
