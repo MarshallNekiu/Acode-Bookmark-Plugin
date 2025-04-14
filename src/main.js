@@ -273,7 +273,20 @@ class DataManager {
 			file.remove();
 			return;
 		};
-		while (folder.childElementCount <= 1 && folder.parentElement.className == "mnbm-folder") { folder = folder.parentElement }
+		while (folder.childElementCount <= 2 && folder.parentElement.className == "mnbm-folder") {
+			const parent = folder.parentElement;
+			if (parent.childElementCount == 1) { folder = parent; continue };
+			folder.remove();
+			
+			const first = parent.firstElementChild;
+			if (first.className == "mnbm-file") break;
+			
+			parent.parentElement.insertBefore(first, parent);
+			first.dataset.path = parent.dataset.path + first.dataset.path;
+			first.firstChild.textContent = this.regexManager.format(first.dataset.path);
+			folder = folder.parentElement;
+			parent.remove();
+		}
 		folder.remove();
 	}
 	
@@ -393,61 +406,65 @@ class DataManager {
 		for (let i = 0; i < folders.length; i++) { folder.append(folders[i]) }
 	}
 	
-	getTree() {
-		//alert(this.list);
-		if (!this.list.firstElementChild) return [];
-		const files = this.list.querySelectorAll(".mnbm-file");
-		//alert(this.list.childElementCount, this.list.firstElementChild.childElementCount);
-		const map = [];
-		for (let i = 0; i < files.length; i++) {
-			var folder = files[i].parentElement;
-			var path = "";
-			while (folder.className == "mnbm-folder") {
-				path = folder.dataset.path + path;
-				folder = folder.parentElement;
-			}
-			map.push([-1, path, this.fileText(files[i]), files[i].dataset.id]);
+	filePath(file) {
+		var folder = file.parentElement;
+		const path = "";
+		while (folder.parentElement.className == "mnbm-folder") {
+			path = folder.dataset.path + path;
+			folder = folder.parentElement;
 		}
-		//alert("t0", JSON.stringify(map));
-		const tree = [];
-		
-		for (let i = 0; i < map.length; i++) {
-			var x = true;
-			
-			for (let j = i - 1; j >= 0; j--) {
-				if (map[i][1].startsWith(map[j][1])) {
-					tree.push([j, map[i][1].slice(map[j][1].length), map[i][2], map[i][3]]);
-					x = false;
-					break;
-				}
-			}
-			if (x) tree.push([i, map[i][1], map[i][2], map[i][3]]);
-		}
-		//alert(tree);
-		return tree;
-	}
+		return path;
+	};
 	
-	setTree(tree) {
-		this.list.innerText = "";
-		const map = [];
-		for (let i = 0; i < tree.length; i++) {
-			if (tree[i][0] == i) {
-				this.addFile(tree[i][3], tree[i][1], tree[i][2]);
-				map.push([tree[i][3], tree[i][1], tree[i][2]]);
-				continue;
-			};
-			var path = "";
-			var j = i;
-			while (tree[j][0] != j) {
-				path = tree[j][1] + path;
-				j = tree[j][0];
+	getTree() {
+			const files = this.list.querySelectorAll(".mnbm-file");
+			const map = [];
+			
+			for (let i = 0; i < files.length; i++) {
+				var folder = files[i].parentElement;
+				var path = "";
+				while (folder.className == "mnbm-folder") {
+					path = folder.dataset.path + path;
+					folder = folder.parentElement;
+				}
+				map.push([files[i].dataset.id, [-1, path, this.fileText(files[i])]]);
 			}
-			path = tree[j][1] + path;
-			this.addFile(tree[i][3], path, tree[i][2]);
-			map.push([tree[i][3], path, tree[i][2]]);
+			
+			const tree = new Map();
+			
+			for (let i = 0; i < map.length; i++) {
+				var x = true;
+				for (let j = i - 1; j >= 0; j--) {
+					if (map[i][1][1].startsWith(map[j][1][1])) {
+						tree.set(map[i][0], [j, map[i][1][1].slice(map[j][1][1].length), map[i][1][2]]);
+						x = false;
+						break;
+					};
+				}
+				if (x) tree.set(map[i][0], [i, map[i][1][1], map[i][1][2]]);
+			}
+			return tree;
 		}
-		return map;
-	}
+		
+		setTree(tree) {
+			this.list.innerHTML = "";
+			const map = Array.from(tree);
+			
+			for (let i = 0; i < map.length; i++) {
+				if (map[i][1][0] == i) {
+					this.addFile(map[i][0], map[i][1][1], map[i][1][2]);
+					continue;
+				};
+				var path = "";
+				var j = i;
+				while (map[j][1][0] != j) {
+					path = map[j][1][1] + path;
+					j = map[j][1][0];
+				}
+				path = map[j][1][1] + path;
+				this.addFile(map[i][0], path, map[i][1][2]);
+			}
+		}
 	
 	async checkFiles() {
 		
@@ -554,7 +571,6 @@ class BookmarkPlugin {
   }
 
   async init() {
-  	//alert("init", "");
     const self = this;
     const fsData = this.fsData = await fs(window.DATA_STORAGE + "bookmark.json");
     
@@ -570,6 +586,8 @@ class BookmarkPlugin {
 				newDFObj.set(id, { uri: [0, "", data.file[id].name], array: data.file[id].array });
 			}
 			data.file = newDFObj;
+		} else {
+			data.file = new Map(data.file);
 		};
      	data.regex = data.regex ?? [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
      	data.plugin.version = "1.2.3";
@@ -586,7 +604,6 @@ class BookmarkPlugin {
     this.file = editorManager.activeFile;
     this.array = this.buffer[this.file.id];
     
-    //alert("data", "");
     const [bmManager, dtManager, debugManager, bmWindow] = [this.bmManager, this.dtManager, this.debugManager, this.window];
 
     //SIDE BUTTON
@@ -617,7 +634,7 @@ class BookmarkPlugin {
       textColor: "#000"
     });
     debugSB.show();
-    //alert("button", "");
+    
     //EVENTS
     editorManager.editor.on("gutterclick", (e) => {
       const row = e.getDocumentPosition().row;
@@ -655,9 +672,9 @@ class BookmarkPlugin {
 				this.data.file.set(f.id, { uri: this.data.file.get(f.id).uri, array: [...this.array] });
 			} else {
 				dtManager.addFile(f.id, f.location, f.filename);
-				const tree = dtManager.getTree();
+				const tree = Array.from(dtManager.getTree());
 				for (let i = 0; i < tree.length; i++) {
-					this.data.file.set(tree[i][3], { uri: [tree[i][0], tree[i][1], tree[i][2]], array: this.data.file.get(tree[i][3]) ?? [] });
+					this.data.file.set(tree[i][0], { uri: tree[i][1], array: this.data.file.get(tree[i][3]) ?? [] });
 				}
 				this.data.file.get(f.id).array = [...this.array];
 			};
@@ -752,7 +769,7 @@ class BookmarkPlugin {
 
       switch (target.dataset.action) {
         case "data":
-          debugManager.log(JSON.stringify({plugin: this.data.plugin, file: this.mapToI(this.data.file), regex: this.data.regex}));
+          debugManager.log(JSON.stringify({plugin: this.data.plugin, file: Array.from(this.data.file), regex: this.data.regex}));
           return;
         case "buffer":
           debugManager.log(JSON.stringify(this.buffer));
@@ -917,14 +934,6 @@ class BookmarkPlugin {
     this.window.hide();
     //if (this.getPanel()) this.removePanel();
     this.style.remove();
-  }
-  
-  mapToI(map) {
-  	const I = [];
-  	map.forEach((v, k) => {
-  		I.push([k, v]);
-  	});
-  	return I;
   }
 
   notify(x, t = 1000) {
