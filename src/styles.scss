@@ -70,8 +70,9 @@
 				display: flex;
 				margin-right: 8px;
 				//background: rgba(255,255,255,0.5);
-
-				z-index: 1; > button {
+				z-index: 1;
+				
+				> button {
 					margin-right:8px;
 				}
 
@@ -180,7 +181,7 @@
 
 					}
 
-					.mnbm-file {
+					.mnbm-file, .mnbm-item {
 					//padding-top:0px;
 					//heigth:50%
 						border-radius: 3px;

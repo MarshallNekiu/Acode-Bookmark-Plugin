@@ -729,9 +729,9 @@
 		}
 		
 		getTree() {
-			if (!this.list.firstElementChild) return [];
 			const files = this.list.querySelectorAll(".mnbm-file");
 			const map = [];
+			
 			for (let i = 0; i < files.length; i++) {
 				var folder = files[i].parentElement;
 				var path = "";
@@ -739,46 +739,42 @@
 					path = folder.dataset.path + path;
 					folder = folder.parentElement;
 				}
-				map.push([-1, path, this.fileText(files[i]), files[i].dataset.id]);
+				map.push([files[i].dataset.id, [-1, path, this.fileText(files[i])]]);
 			}
 			
-			const tree = [];
+			const tree = new Map();
 			
 			for (let i = 0; i < map.length; i++) {
 				var x = true;
-				
 				for (let j = i - 1; j >= 0; j--) {
-					if (map[i][1].startsWith(map[j][1])) {
-						tree.push([j, map[i][1].slice(map[j][1].length), map[i][2], map[i][3]]);
+					if (map[i][1][1].startsWith(map[j][1][1])) {
+						tree.set(map[i][0], [j, map[i][1][1].slice(map[j][1][1].length), map[i][1][2]]);
 						x = false;
 						break;
-					}
+					};
 				}
-				if (x) tree.push([i, map[i][1], map[i][2], map[i][3]]);
+				if (x) tree.set(map[i][0], [i, map[i][1][1], map[i][1][2]]);
 			}
-			
-			for (let i = 0; i < tree.length; i++) {
-				debug(map[i] + " ===> " + tree[i], ".");
-			}
-			
 			return tree;
 		}
 		
 		setTree(tree) {
-			this.list.innerText = "";
-			for (let i = 0; i < tree.length; i++) {
-				if (tree[i][0] == i) {
-					this.addFile(tree[i][3], tree[i][1], tree[i][2]);
+			this.list.innerHTML = "";
+			const map = Array.from(tree);
+			
+			for (let i = 0; i < map.length; i++) {
+				if (map[i][1][0] == i) {
+					this.addFile(map[i][0], map[i][1][1], map[i][1][2]);
 					continue;
 				};
 				var path = "";
 				var j = i;
-				while (tree[j][0] != j) {
-					path = tree[j][1] + path;
-					j = tree[j][0];
+				while (map[j][1][0] != j) {
+					path = map[j][1][1] + path;
+					j = map[j][1][0];
 				}
-				path = tree[j][1] + path;
-				this.addFile(tree[i][3], path, tree[i][2]);
+				path = map[j][1][1] + path;
+				this.addFile(map[i][0], path, map[i][1][2]);
 			}
 		}
 		
@@ -841,9 +837,20 @@
    	dt.addFile("id5", "path0/path1/path0/path1/", "nameless5");
    	dt.addFile("id6", "path0/path0/", "nameless6");
    	dt.addFile("id7", "path0/", "nameless7");
+  	dt.addFile("id8", "", "nameless8");
+  	dt.addFile("id9", "", "nameless9");
    	//dt.addFile("id7", "content://com.termux.documents/tree/%2Fdata%2Fdata%2Fcom.termux%2Ffiles%2Fhome%2FAcode-Bookmark-Plugin%2F/::data/data/src", "nameless7");
+   	debug("TREE");
    	
    	const tree = dt.getTree();
    	//dt.list.innerHTML = "";
+   	debug(...Array.from(tree), "=>");
    	dt.setTree(tree);
+   	debug(...Array.from(dt.getTree()));
+   	debug("==>");
+   	debug(...Array.from(tree), "=>");
+   	dt.setTree(dt.getTree());
+   	debug(...Array.from(dt.getTree()));
+   	
+   	
 </script>
