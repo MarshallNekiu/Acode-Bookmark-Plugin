@@ -657,6 +657,7 @@ class BookmarkPlugin {
         bmManager.editList(this.array);
     });
   	
+  	//BOOKMARK MANAGER
     bmManager.controlPanel.addEventListener("click", async (e) => {
       const target = e.target.closest("[data-action]");
       if (!target) return;
@@ -674,7 +675,7 @@ class BookmarkPlugin {
 				dtManager.addFile(f.id, f.location, f.filename);
 				const tree = Array.from(dtManager.getTree());
 				for (let i = 0; i < tree.length; i++) {
-					this.data.file.set(tree[i][0], { uri: tree[i][1], array: this.data.file.get(tree[i][3]) ?? [] });
+					this.data.file.set(tree[i][0], { uri: tree[i][1], array: this.data.file.get(tree[i][0])?.array ?? [] });
 				}
 				this.data.file.get(f.id).array = [...this.array];
 			};
@@ -718,7 +719,7 @@ class BookmarkPlugin {
 			return;
       }
     });
-    //alert("dtevent", "");
+    
     //DATA MANAGER
     dtManager.controlPanel.addEventListener("click", async (e) => {
       const target = e.target.closest("[data-action]");
@@ -738,7 +739,6 @@ class BookmarkPlugin {
         	return;
       }
     });
-    //alert("dt1", "");
     
     dtManager.list.addEventListener("click", async (e) => {
       const target = e.target.closest("[data-action]");
@@ -746,22 +746,17 @@ class BookmarkPlugin {
 
       switch (target.dataset.action) {
         case "erase":
-        //	alert("0", "");
           data.file.delete(target.parentElement.dataset.id);
-          //alert("1", "");
           dtManager.removeFile(target.parentElement);
-          //alert("2", "");
           this.saveData();
-          //alert("3", "");
           return;
       }
     });
     
-    //alert("rgxe", "");
     dtManager.regexManager.list.addEventListener("input", (event) => {
     	data.regex = dtManager.regexManager.getRegex();
     });
-    //alert("dte2", "");
+    
     //DEBUG MANAGER
     debugManager.controlPanel.addEventListener("click", async (e) => {
       const target = e.target.closest("[data-action]");
