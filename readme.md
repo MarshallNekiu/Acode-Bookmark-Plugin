@@ -9,7 +9,8 @@ A simple plugin to navigate through text.
 	- **Save**: Save the *Bookmark list* for the current file.*(Auto)*
 	- **Load**: Load the *Bookmark list* for the current file.*(Auto)*
 	- **File**: Show the *Files* with a *Bookmark List*.
-		- **Regex**: Slice path.
+		- **Check**: Check path.
+		- **Regex**: Slice path.(UI)
 
 ## Version Note
 

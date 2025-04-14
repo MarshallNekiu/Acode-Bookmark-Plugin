@@ -164,7 +164,7 @@
 				overflow-y: scroll;
 
 				.mnbm-list {
-					padding-bottom: 24px;
+					padding-bottom: 32px;
 					margin-top: 0px;
 					list-style: none;
 					//height:100%;
@@ -174,11 +174,16 @@
 
 					.mnbm-folder {
 						color: black;
+						border: 1px solid black;
+						
 						//margin-left: 2%;
 						background:rgba(255, 255, 200, 0.1);
 						padding-left: 2%;
 						//font-size:16px;
+						padding-right: 1px;
 						padding-top: 0px;
+						border-radius: 3px;
+						margin-bottom: 2px;
 
 					}
 

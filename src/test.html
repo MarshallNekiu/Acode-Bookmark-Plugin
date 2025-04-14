@@ -169,7 +169,7 @@
 						overflow-y: scroll;
 		
 						.mnbm-list {
-							padding-bottom: 24px;
+							padding-bottom: 28px;
 							margin-top: 0px;
 							list-style: none;
 							//height:100%;
@@ -179,13 +179,15 @@
 		
 							.mnbm-folder {
 								//margin-left: 3%;
+								border: 1px solid black;
 								background:rgba(255, 255, 200, 0.1);
 								padding: 2px;
 								padding-left: 3%;
-								padding-right: 0px;
+								padding-right: 1px;
 								//font-size:16px;
 								//padding-top: 0px;
-								margin-bottom: 2px;
+								margin-bottom: 1px;
+								border-radius: 3px;
 		
 							}
 		
@@ -203,6 +205,7 @@
 								//background:red;
 								//padding-left: 50%;
 								margin-right: 2px;
+								border-radius: 3px;
 		
 								.mnbm-prefix {
 								margin-top: 0px;
@@ -878,8 +881,9 @@
    	var path = "";
    	
    	for (let i = 0; i < 32; i++) {
-   		path += "path0/"
-   		//dt.addFile("id" + i, path, "name" + i);
+   		path += "path0/";
+   		if ([6, 12, 23, 24].includes(i)) path = path.slice(0, -12) + "path1/"
+   		dt.addFile("id" + i, path, "name" + i);
    	}
    	
 </script>
