@@ -267,27 +267,27 @@ class DataManager {
 		folder.firstChild.textContent = this.regexManager.format(rPath);
 	}
 	
-	removeFile(file) {
+	removeFile(file) { // IF WORKS DO NOT TOUCH
 		var folder = file.parentElement;
-		if (folder.childElementCount > 1) {
-			file.remove();
-			return;
-		};
-		while (folder.childElementCount <= 2 && folder.parentElement.className == "mnbm-folder") {
+		file.remove();
+		while (folder.className == "mnbm-folder") {
 			const parent = folder.parentElement;
-			if (parent.childElementCount == 1) { folder = parent; continue };
-			folder.remove();
-			
-			const first = parent.firstElementChild;
-			if (first.className == "mnbm-file") break;
-			
-			parent.parentElement.insertBefore(first, parent);
-			first.dataset.path = parent.dataset.path + first.dataset.path;
-			first.firstChild.textContent = this.regexManager.format(first.dataset.path);
-			folder = folder.parentElement;
-			parent.remove();
+			if (folder.childElementCount == 0) {
+				folder.remove();
+				folder = parent;
+				continue;
+			};
+			if (folder.childElementCount == 1) {
+				const child = folder.firstElementChild;
+				if (child.className == "mnbm-file") break;
+				parent.insertBefore(child, folder);
+				child.dataset.path = folder.dataset.path + child.dataset.path;
+				child.firstChild.textContent = this.regexManager.format(child.dataset.path);
+				folder.remove();
+			};
+			folder = parent?.parentElement;
+			break;
 		}
-		folder.remove();
 	}
 	
 	tryFocus(id) {
@@ -416,55 +416,57 @@ class DataManager {
 		return path;
 	};
 	
-	getTree() {
-			const files = this.list.querySelectorAll(".mnbm-file");
-			const map = [];
-			
-			for (let i = 0; i < files.length; i++) {
-				var folder = files[i].parentElement;
-				var path = "";
-				while (folder.className == "mnbm-folder") {
-					path = folder.dataset.path + path;
-					folder = folder.parentElement;
-				}
-				map.push([files[i].dataset.id, [-1, path, this.fileText(files[i])]]);
+	getTree(uri = false) {
+		const files = this.list.querySelectorAll(".mnbm-file");
+		const map = [];
+		
+		for (let i = 0; i < files.length; i++) {
+			var folder = files[i].parentElement;
+			var path = "";
+			while (folder.className == "mnbm-folder") {
+				path = folder.dataset.path + path;
+				folder = folder.parentElement;
 			}
-			
-			const tree = new Map();
-			
-			for (let i = 0; i < map.length; i++) {
-				var x = true;
-				for (let j = i - 1; j >= 0; j--) {
-					if (map[i][1][1].startsWith(map[j][1][1])) {
-						tree.set(map[i][0], [j, map[i][1][1].slice(map[j][1][1].length), map[i][1][2]]);
-						x = false;
-						break;
-					};
-				}
-				if (x) tree.set(map[i][0], [i, map[i][1][1], map[i][1][2]]);
-			}
-			return tree;
+			map.push([files[i].dataset.id, [i, path, this.fileText(files[i])]]);
 		}
 		
-		setTree(tree) {
-			this.list.innerHTML = "";
-			const map = Array.from(tree);
-			
-			for (let i = 0; i < map.length; i++) {
-				if (map[i][1][0] == i) {
-					this.addFile(map[i][0], map[i][1][1], map[i][1][2]);
-					continue;
+		if (uri) return map;
+		
+		const tree = new Map();
+		
+		for (let i = 0; i < map.length; i++) {
+			var x = true;
+			for (let j = i - 1; j >= 0; j--) {
+				if (map[i][1][1].startsWith(map[j][1][1])) {
+					tree.set(map[i][0], [j, map[i][1][1].slice(map[j][1][1].length), map[i][1][2]]);
+					x = false;
+					break;
 				};
-				var path = "";
-				var j = i;
-				while (map[j][1][0] != j) {
-					path = map[j][1][1] + path;
-					j = map[j][1][0];
-				}
-				path = map[j][1][1] + path;
-				this.addFile(map[i][0], path, map[i][1][2]);
 			}
+			if (x) tree.set(map[i][0], [i, map[i][1][1], map[i][1][2]]);
 		}
+		return tree;
+	}
+		
+	setTree(tree) {
+		this.list.innerHTML = "";
+		const map = Array.from(tree);
+		
+		for (let i = 0; i < map.length; i++) {
+			if (map[i][1][0] == i) {
+				this.addFile(map[i][0], map[i][1][1], map[i][1][2]);
+				continue;
+			};
+			var path = "";
+			var j = i;
+			while (map[j][1][0] != j) {
+				path = map[j][1][1] + path;
+				j = map[j][1][0];
+			}
+			path = map[j][1][1] + path;
+			this.addFile(map[i][0], path, map[i][1][2]);
+		}
+	}
 	
 	async checkFiles() {
 		

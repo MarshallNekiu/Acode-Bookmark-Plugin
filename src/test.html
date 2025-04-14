@@ -178,11 +178,14 @@
 		
 		
 							.mnbm-folder {
-								//margin-left: 2%;
+								//margin-left: 3%;
 								background:rgba(255, 255, 200, 0.1);
-								padding-left: 2%;
+								padding: 2px;
+								padding-left: 3%;
+								padding-right: 0px;
 								//font-size:16px;
-								padding-top: 0px;
+								//padding-top: 0px;
+								margin-bottom: 2px;
 		
 							}
 		
@@ -199,6 +202,7 @@
 								//position:relative;
 								//background:red;
 								//padding-left: 50%;
+								margin-right: 2px;
 		
 								.mnbm-prefix {
 								margin-top: 0px;
@@ -219,6 +223,7 @@
 									border-top-left-radius: 0px;
 									border-bottom-left-radius: 0px;
 									margin-left: auto;
+									//margin-right: 2px;
 								}
 		
 								.mnbm-text {
@@ -605,7 +610,7 @@
 		removeFile(file) {
 			var folder = file.parentElement;
 			file.remove();
-			while (folder.parentElement.className == "mnbm-folder") {
+			while (folder.className == "mnbm-folder") {
 				const parent = folder.parentElement;
 				if (folder.childElementCount == 0) {
 					folder.remove();
@@ -623,8 +628,6 @@
 				folder = parent?.parentElement;
 				break;
 			}
-			debug(folder?.className + " : " + folder?.childElementCount);
-			if (folder?.childElementCount == 0) folder.remove();
 		}
 		
 		tryFocus(id) {
@@ -861,13 +864,22 @@
    	
    	
    	debug(...Array.from(dt.getTree(true)));
-   	const r = [0, 2, 4, 7];
+   	const r = [9,6,8,3,4];
    	
    	for (let i = 0; i < r.length; i++) {
+		if (r[i] % 2 == 0) dt.addFile("id+" + r[i], "path0/path1/path0/", "nameless+" + r[i]);
 		dt.removeFile(dt.getFile("id" + r[i]));
-		dt.removeFile(dt.getFile("id" + (r[i] + 1)));
    	}
    	
    	debug("=>", ...Array.from(dt.getTree(true)));
+   	
+   	//dt.setTree(new Map());
+   	
+   	var path = "";
+   	
+   	for (let i = 0; i < 32; i++) {
+   		path += "path0/"
+   		//dt.addFile("id" + i, path, "name" + i);
+   	}
    	
 </script>
