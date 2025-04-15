@@ -7,10 +7,108 @@ const settings = acode.require("settings");
 const SideButton = acode.require("sideButton");
 const alert = acode.require("alert");
 
-class Debugger {
+class BMWindow {
+	static #signalShow = new Event("show");
+	static #signalHide = new Event("hide");
+	
+	visible = false;
+	
+	#panel = tag("section", { className: "mnbm-window" });
+	#content = null;
 	
 	constructor () {
-		this.controlPanel = tag("div", {className: "mnbm-control-panel"});
+		this.panel.innerHTML = `
+			<div class="mnbm-content">
+				<div class="mnbm-header">
+					<div class="mnbm-drag"> </div>
+					<button class="mnbm-close"> X </button>
+				</div>
+				<div class="mnbm-body">
+					<div class="mnbm-container"> </div>
+				</div>
+			</div>
+			<div class="mnbm-bg"> </div>
+		`;
+		
+		this.panel.querySelector(".mnbm-drag").addEventListener("touchmove", async (e) => this.#onTouchMoved(e));
+		this.panel.querySelector(".mnbm-bg").addEventListener("touchmove", async (e) => this.#onTouchMoved(e));
+		this.panel.querySelector(".mnbm-close").addEventListener("click", (e) => this.hide());
+	}
+	
+	show() {
+		this.visible = true;
+		this.panel.dispatchEvent(BMWindow.signalShow);
+	}
+	
+	hide() {
+		this.visible = false;
+		this.panel.dispatchEvent(BMWindow.signalHide);
+	}
+	
+	attachContent(...wc) {
+		const h = this.panel.querySelector(".mnbm-header");
+		const l = h.querySelector(".mnbm-close");
+		const c = this.panel.querySelector("mnbm-container")
+		wc.forEach((v) {
+			h.append(v.controlPanel);
+			c.append(v.list);
+		})
+		h.append(l);
+	}
+	
+	hasContent(wc) { return wc.closest(".mnbm-window") == this.panel }
+	
+	setContent(wc) {
+		if (this.content) this.content.visible = false;
+		wc.visible = true;
+	}
+	
+	async #onTouchMoved(event) {
+		const x = (event.touches[0].clientX / (this.panel.offsetWidth * 2));
+		const y = ((event.touches[0].clientY + this.panel.offsetHeight / 2 - 16) / (this.panel.offsetHeight * 2));
+		this.panel.style.left = x * 100 +  "%";
+		this.panel.style.top = y * 100 + "%";
+	}
+	
+	get panel() { return this.#panel }
+	
+	get visible() { return this.#panel.isConnected() }
+	
+	set visible(x) {
+		if (x && !this.visible) {
+			document.body.append(this.panel);
+		} else if (!x && this.visible) {
+			this.panel.remove();
+		}
+		if (this.content) this.content.visible = x;
+	}
+}
+
+class BMWContent {
+	#controlPanel;
+	#list;
+	#visible;
+	
+	constructor() {
+		this.#controlPanel = tag("div", { className: "mnbm-control-panel" });
+		this.#list = tag("ul", { className: "mnbm-list" });
+		this.#visible = false;
+	}
+	
+	get controlPanel() { return this.#controlPanel }
+	
+	get list() { return this.#list }
+	
+	set visible {
+		this.#controlPanel.style.visibility == "hidden";
+		this.#list.style.visibility == "hidden";
+	}
+}
+
+class Debugger extends BMWContent {
+	
+	constructor () {
+		super();
 		this.controlPanel.innerHTML = `
 			<button class="mnbm-debug-data" data-action="data"> Data </button>
 			<button class="mnbm-debug-buffer" data-action="buffer"> Buffer </button>
@@ -19,9 +117,6 @@ class Debugger {
 			<button class="mnbm-debug-tree" data-action="tree"> Tree </button>
 			<button class="mnbm-debug-clear" data-action="clear"> Clear </button>
 		`;
-		this.list = tag("ul", {className: "mnbm-list"});
-		this.visible = false;
-		this.active = true;
 		
 		this.list.addEventListener("click", (e) => {
 			const target = e.target.closest("[data-action]");
@@ -36,7 +131,6 @@ class Debugger {
 	}
 	
 	log(...logs) {
-		if (!active) return;
 		const log = logs.shift();
 		if (!toLog) return;
 		const li = tag("li", {
@@ -74,65 +168,6 @@ class Debugger {
 }
 
 const debugManager = new Debugger();
-
-const [signalShow, signalHide] = [new Event("show"), new Event("hide")];
-
-class BMWindow {
-	
-	constructor () {
-		this.panel = tag("section", { className: "mnbm-window" });
-		this.panel.innerHTML = `
-			<div class="mnbm-content">
-				<div class="mnbm-header">
-					<div class="mnbm-drag"> </div>
-					<div class="mnbm-control-panel"> </div>
-					<button class="mnbm-close"> X </button>
-				</div>
-				<div class="mnbm-body">
-					<div class="mnbm-container">
-						<ul class="mnbm-list"> </ul>
-					</div>
-				</div>
-			</div>
-			<div class="mnbm-bg"> </div>
-		`;
-		this.visible = false;
-		
-		this.panel.querySelector(".mnbm-drag").addEventListener("touchmove", async (e) => this.onTouchMoved(e));
-		this.panel.querySelector(".mnbm-bg").addEventListener("touchmove", async (e) => this.onTouchMoved(e));
-		this.panel.querySelector(".mnbm-close").addEventListener("click", (e) => this.hide());
-	}
-	
-	destroy() {
-		if (this.visible) this.panel.remove();
-		this.visible = false;
-		this.setContent(tag("div", { className: "mnbm-control-panel" }), tag("ul", { className: "mnbm-list" }));
-	}
-	
-	show() {
-		if (!this.visible) document.body.append(this.panel);
-		this.visible = true;
-		this.panel.dispatchEvent(signalShow);
-	}
-	
-	hide() {
-		if (this.visible) this.panel.remove();
-		this.visible = false;
-		this.panel.dispatchEvent(signalHide);
-	}
-	
-	async onTouchMoved(event) {
-		const x = (event.touches[0].clientX / (this.panel.offsetWidth * 2));
-		const y = ((event.touches[0].clientY + this.panel.offsetHeight / 2 - 16) / (this.panel.offsetHeight * 2));
-		this.panel.style.left = x * 100 +  "%";
-		this.panel.style.top = y * 100 + "%";
-	}
-	
-	setContent(controlPanel, list) {
-		this.panel.querySelector(".mnbm-control-panel").replaceWith(controlPanel);
-		this.panel.querySelector(".mnbm-list").replaceWith(list);
-	}
-}
 
 class BookmarkManager {
 	

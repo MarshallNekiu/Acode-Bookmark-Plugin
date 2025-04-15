@@ -890,4 +890,45 @@
    		//dt.addFile("id" + i, path, "name" + i);
    	}
    	
+	document.body.append(tag("button", { innerText: "Button" }));
+	document.body.lastElementChild.style.visibility = "hidden";
+	//document.body.lastElementChild.style.visibility = "visible";
+	
+	class Test {
+		static spub = tag("p");
+		static signalTest = new Event("test");
+		static #spriv = tag("p");
+		pub = tag("p");
+		#priv = tag("p");
+		
+		constructor() {
+			this.#testing();
+			//this.spub = Test.spub;
+			//this.spriv = Test.spriv;
+			//this.pub = this.pub;
+			//this.#priv = this.#priv;
+			document.body.dispatchEvent(Test.signalTest);
+		}
+		
+		static get spriv() { return Test.#spriv }
+		
+		//get spriv() { return this.#spriv }
+		
+		get priv() { return this.#priv }
+		
+		async #testing() { debug("testing") }
+	}
+	
+	document.body.addEventListener("test", (a = "000", ...x) => { debug(a, x, 0) });
+	
+	const test = new Test();
+	const test2 = new Test();
+	
+	debug(Test.spub, Test.spriv);
+	debug(test.pub, test2.priv, test.pub == test2.pub, test.priv == test2.priv);
+	//debug(test.spriv, test2.spriv, test.spriv == test2.spriv);
+	//debug(test.spub, test.spriv, test.pub, test.priv);
+	//debug(test.spub == test2.spub, test.spriv == test2.spriv, test.pub == test2.pub, test.priv == test2.priv);
+	
+	
 </script>
