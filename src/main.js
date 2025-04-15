@@ -16,6 +16,8 @@ class Debugger {
 			<button class="mnbm-debug-buffer" data-action="buffer"> Buffer </button>
 			<button class="mnbm-debug-file" data-action="file"> File </button>
 			<button class="mnbm-debug-array" data-action="array"> Array </button>
+			<button class="mnbm-debug-tree" data-action="tree"> Tree </button>
+			<button class="mnbm-debug-clear" data-action="clear"> Clear </button>
 		`;
 		this.list = tag("ul", {className: "mnbm-list"});
 		this.visible = false;
@@ -661,7 +663,7 @@ class BookmarkPlugin {
 			this.notify("Bookmark saved");
 			return;
         case "load":
-          this.array = [...(data.file.get(this.file.id)?.array ?? [])];
+          this.array.splice(0, Infinity, ...(data.file.get(this.file.id)?.array ?? []));
           bmManager.makeList(this.array);
           this.updateGutter();
           this.notify("Bookmark loaded");
@@ -688,7 +690,6 @@ class BookmarkPlugin {
 				return;
 			case "erase":
 				const idx = this.array.indexOf(row);
-				//this.array = [...this.array.slice(0, idx), ...this.array.slice(idx + 1)];
 				this.array.splice(row, 1);
 				editorManager.editor.session.removeGutterDecoration(row, "mnbm-gutter");
 				target.parentElement.remove();
@@ -754,80 +755,70 @@ class BookmarkPlugin {
 				debugManager.log(this.file.id + " : " + this.file.uri);
 				return;
 			case "array":
-				debugManager.log(this.array); // CHECK IF SHIFT AFFECTS THIS.ARRAY
+				debugManager.log(this.array);
+				return;
+			case "tree":
+				debugManager.log(...Array.from(dtManager.getTree(true)), "=>", ...Array.from(dtManager.getTree()));
+				return;
+			case "clear":
+				debugManager.list.innerHTML = "";
 				return;
 		}
     });
     
     //EDITOR EVENTS
     editorManager.on("new-file", (e) => {
-      //debugManager.log("new-file: " + e.id + " : " + e.filename);
-      this.buffer[e.id] = [...(data.file.get(e.id)?.array ?? [])];
+		//debugManager.log("new-file: " + e.id + " : " + e.filename);
+		this.buffer[e.id] = [...(data.file.get(e.id)?.array ?? [])];
     });
 
     editorManager.on("file-loaded", (e) => {
-      //debugManager.log("file-loaded: " + e.id + " : " + e.filename);
-      this.array = [...(data.file.get(e.id)?.array ?? [])];
-      bmManager.makeList(this.array);
-      this.updateGutter();
-      this.notify("Bookmark loaded");
+		//debugManager.log("file-loaded: " + e.id + " : " + e.filename);
+		this.array.splice(0, Infinity, ...(data.file.get(e.id)?.array ?? []));
+		bmManager.makeList(this.array);
+		this.updateGutter();
+		this.notify("Bookmark loaded");
     });
     
     const last_rename = { id: this.file.id, location: this.file.location, name: this.file.filename };
 
     editorManager.on("switch-file", async (e) => {
-      //debugManager.log(`switch-file: ${this.file.filename} => ${e.filename}`);
-      this.buffer[this.file.id] = [...this.array];
-      this.array = [...this.buffer[e.id]];
-      bmManager.makeList(this.array);
-      this.updateGutter();
-      this.file = e;
-      last_rename.id = this.file.id;
-      last_rename.location = this.file.location;
-      last_rename.name = this.file.filename;
-      dtManager.tryFocus(this.file.id);
-      //if (dtManager.visible) dtManager.reLoad(this.data.file);
-      this.notify("Bookmark switched"); // : " + "Files: " + infi.length + " uri: " + this.file.uri + " || " + this.getFormattedPath(this.file.uri), 5000);
+		//debugManager.log(`switch-file: ${this.file.filename} => ${e.filename}`);
+		this.buffer[this.file.id] = this.array;
+		this.array = this.buffer[e.id] ?? []/*ERRORCASE*/;
+		bmManager.makeList(this.array);
+		this.updateGutter();
+		this.file = e;
+		last_rename.id = this.file.id;
+		last_rename.location = this.file.location;
+		last_rename.name = this.file.filename;
+		dtManager.tryFocus(this.file.id);
+		this.notify("Bookmark switched"); // : " + "Files: " + infi.length + " uri: " + this.file.uri + " || " + this.getFormattedPath(this.file.uri), 5000);
     });
 
     editorManager.on("rename-file", async (e) => {
-      debugManager.log("rename-file: " + last_rename.id + " : " + last_rename.name + " => " + e.id + " : " + e.filename);
-      /*
-      if (data.file[last_rename.id]) {
-        data.file[e.id] = { uri: [-1, e.location, e.filename], array: [...data.file[last_rename.id].array] };
-        if (!(last_rename.id == e.id)) delete data.file[last_rename.id];
-        data.regex = this.dtManager.regexManager.getRegex();
-        await fsData.writeFile(JSON.stringify(data));
-      }
-      if (data.file[e.id]) data.file[e.id].uri = [-1, e.location, e.filename];
-      this.buffer[e.id] = [...this.buffer[last_rename.id]];
-      if (!(last_rename.id == e.id)) delete this.buffer[last_rename.id];
-      if (dtManager.visible) dtManager.reLoad(data.file);
-      this.file = e;
-      last_rename.id = this.file.id;
-      last_rename.location = this.file.location;
-      last_rename.name = this.file.filename;
-      */
-      this.notify("Bookmark renamed");
+		debugManager.log("rename-file: " + last_rename.id + " : " + last_rename.name, " => ", e.id + " : " + e.filename);
+		/*
+		if (data.file[last_rename.id]) {
+		data.file[e.id] = { uri: [-1, e.location, e.filename], array: [...data.file[last_rename.id].array] };
+		if (!(last_rename.id == e.id)) delete data.file[last_rename.id];
+		data.regex = this.dtManager.regexManager.getRegex();
+		await fsData.writeFile(JSON.stringify(data));
+		}
+		if (data.file[e.id]) data.file[e.id].uri = [-1, e.location, e.filename];
+		this.buffer[e.id] = [...this.buffer[last_rename.id]];
+		if (!(last_rename.id == e.id)) delete this.buffer[last_rename.id];
+		if (dtManager.visible) dtManager.reLoad(data.file);
+		this.file = e;
+		last_rename.id = this.file.id;
+		last_rename.location = this.file.location;
+		last_rename.name = this.file.filename;
+		*/
+		this.notify("Bookmark renamed");
     });
 
     editorManager.on("save-file", async (e) => {
-		const f = this.file;
-		if (this.data.file.has(f.id)) {
-			this.data.file.set(f.id, { uri: this.data.file.get(f.id).uri, array: [...this.array] });
-		} else {
-			dtManager.addFile(f.id, f.location, f.filename);
-			const tree = dtManager.getTree();
-			tree.forEach((v, k) => {
-				this.data.file.set(k, { uri: v, array: this.data.file.get(k)?.array ?? [] });
-			});
-			this.data.file.get(f.id).array = [...this.array];
-		};
-		if (this.array.length == 0) {
-			this.data.file.delete(f.id);
-			dtManager.removeFile(dtManager.getFile(f.id));
-		};
-		await this.saveData();
+		await this.saveData(this.file, this.array);
 		this.notify("Bookmark saved");
     });
 
