@@ -906,7 +906,7 @@
 		
 		get #erase() { return "erase" }
 		
-		#getPriv() { return "priv" }
+		static #getPriv() { return "priv" }
 		
 		constructor() {
 			this.#testing();
@@ -915,7 +915,7 @@
 			//this.pub = this.pub;
 			//this.#priv = this.#priv;
 			debug(this.#erase);
-			debug(this.#getPriv());
+			debug(Test.#getPriv());
 			document.body.dispatchEvent(Test.signalTest);
 		}
 		

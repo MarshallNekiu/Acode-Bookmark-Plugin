@@ -292,8 +292,8 @@ class RegexManager extends BMWContent {
 }
 
 class DataManager extends BMWContent{
-	#focus = null;
 	#regexManager = new RegexManager();
+	#focus = null;
 	
 	get regexManager() { return this.#regexManager }
 	
@@ -305,21 +305,26 @@ class DataManager extends BMWContent{
 			<button class="mnbm-regex-visible" data-action="regex-visible"> (.*) </button>
 		`;
 		
-		this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.toggleRegex() });
-		this.regexManager.controlPanel.firstElementChild.addEventListener("click", (e) => { this.toggleRegex() });
+		const toggle = () => {
+			this.visible = !this.visible;
+			this.regexManager.visible = !this.visible;
+		};
+		
+		this.controlPanel.lastElementChild.addEventListener("click", (e) => { toggle() });
+		this.regexManager.controlPanel.firstElementChild.addEventListener("click", (e) => { toggle() });
 	}
 	
 	addFile(id, loc, fn) {
 		const arrLoc = DataManager.pathSplit(loc);
 		const folder = this.#getFolder(this.list, arrLoc, 0, true);
-		const file = this.#newFile(id, fn);
+		const file = DataManager.#newFile(id, fn);
 		folder.append(file);
-		this.sortFolder(folder, this.sortFolder(folder.parentElement, this.sortFolder(this.list);
+		DataManager.sortFolder(folder, folder.parentElement, this.list);
 	}
 	
 	#newFolder(path) { return tag("ul", { className: "mnbm-folder", "path": path, innerText: this.regexManager.format(path) }) }
 	
-	newFile(id, name) {
+	static #newFile(id, name) {
 		const li = tag("li", {
 			className: "mnbm-file",
 			"id": id,
@@ -331,18 +336,20 @@ class DataManager extends BMWContent{
 		return li;
 	}
 	
-	sliceFolder(folder, deep) {
+	#sliceFolder(folder, deep) {
 		const fPath = DataManager.pathSplit(folder.dataset.path);
-		const lPath = this.splitReduce(fPath, 0, deep);
-		const rPath = this.splitReduce(fPath, deep);
-		const lFolder = this.newFolder(lPath);
+		const lPath = DataManager.splitReduce(fPath, 0, deep);
+		const rPath = DataManager.splitReduce(fPath, deep);
+		const lFolder = this.#newFolder(lPath);
 		folder.parentElement.insertBefore(lFolder, folder);
 		lFolder.append(folder);
 		folder.path = rPath;
 		folder.firstChild.textContent = this.regexManager.format(rPath);
 	}
 	
-	removeFile(file) { // CHECK WITH REMOVE_FILE_LOGIC.PNG
+	removeFile(id) { // CHECK WITH REMOVE_FILE_LOGIC.PNG
+		const file = this.#getFile(id);
+		if (!file) return;
 		var folder = file.parentElement;
 		file.remove();
 		while (folder.className == "mnbm-folder") {
@@ -360,46 +367,32 @@ class DataManager extends BMWContent{
 				child.firstChild.textContent = this.regexManager.format(child.path);
 				folder.remove();
 			};
-			folder = parent?.parentElement;
+			folder = parent?.parentElement; // ???
 			break;
 		}
 	}
 	
 	tryFocus(id) {
 		const files = this.list.querySelectorAll(".mnbm-file");
-		if (this.focus) this.focus.style.background = this.focus.invalid ? "#c8141433" : "#ffffff66";
-		this.focus = null;
-		for (let i = 0; i < files.length; i++) {
-			if (files[i].id == id) {
-				this.focus = files[i];
-				const focused = this.focus.id == editorManager.activeFile.id;
-				if (focused) this.focus.style.background = "#c8c8ff66";
+		if (this.#focus) this.#focus.style.background = this.#focus.invalid ? "#c8141433" : "#ffffff66";
+		this.#focus = null;
+		files.forEach((e) => {
+			if (e.id == id) {
+				this.#focus = e;
+				const focused = this.#focus.id == editorManager.activeFile.id;
+				if (focused) this.#focus.style.background = "#c8c8ff66";
 				return;
 			};
-		}
+		});
 	}
 	
-	toggleRegex() {
-		if (!this.visible && !this.regexManager.visible) return;
-		if (this.regexManager.visible) {
-			this.regexManager.controlPanel.replaceWith(this.controlPanel);
-			this.regexManager.list.replaceWith(this.list);
-			this.applyRegex();
-		} else {
-			this.controlPanel.replaceWith(this.regexManager.controlPanel);
-			this.list.replaceWith(this.regexManager.list);
-		}
-		this.regexManager.visible = !this.regexManager.visible;
-		this.visible = !this.visible;
-	}
-	
-	getFile(id) {
+	#getFile(id) {
 		const files = this.list.querySelectorAll(".mnbm-file");
-		for (let i = 0; i < files.length; i++) { if (files[i].id == id) return files[i] }
+		files.forEach((e) => { if (e.id == id) return e });
 		return null;
 	}
 	
-	getFolder(fromFolder, arrLoc, idxLoc, create = false) {
+	#getFolder(fromFolder, arrLoc, idxLoc, create = false) {
 		var folder = fromFolder.firstElementChild;
 		
 		while (folder) {
@@ -410,7 +403,7 @@ class DataManager extends BMWContent{
 			if (folder.className != "mnbm-folder") {
 				if (!FOLDER_NEXT) {
 					if (!create) return null;
-					folder = this.newFolder(this.splitReduce(arrLoc, idxLoc));
+					folder = this.newFolder(DataManager.splitReduce(arrLoc, idxLoc));
 					FOLDER_PREV.append(folder);
 					return folder;
 				}
@@ -431,7 +424,7 @@ class DataManager extends BMWContent{
 				if (FOLDER_FOUND) {
 					if (REQUEST_LIMIT) {
 						if (FOLDER_LIMIT) return folder; // EXACT PATH
-						this.sliceFolder(folder, i + 1);
+						this.#sliceFolder(folder, i + 1);
 						return folder.parentElement; // FOLDER IN-BETWEEN
 					};
 					if (FOLDER_LIMIT) {
@@ -444,43 +437,43 @@ class DataManager extends BMWContent{
 					if (FIRST_FOLDER) {
 						if (!FOLDER_NEXT) {
 							if (!create) return null;
-							folder = this.newFolder(this.splitReduce(arrLoc, idxLoc));
+							folder = this.#newFolder(DataManager.splitReduce(arrLoc, idxLoc));
 							FOLDER_PREV.append(folder);
 							return folder; // NEW SIBLING PATH
 						};
 						folder = FOLDER_NEXT;
 						break;
 					};
-					this.sliceFolder(folder, i);
-					folder.parentElement.append(this.newFolder(this.splitReduce(arrLoc, idxLoc + i)));
+					this.#sliceFolder(folder, i);
+					folder.parentElement.append(this.#newFolder(DataManager.splitReduce(arrLoc, idxLoc + i)));
 					return folder.parentElement.lastElementChild; // NEW IN-BETWEEN FOLDER
 				};
 			}
 		}
 		if (!create) return null;
-		folder = this.newFolder(this.splitReduce(arrLoc, idxLoc));
+		folder = this.#newFolder(DataManager.splitReduce(arrLoc, idxLoc));
 		fromFolder.append(folder);
 		return folder;
 	}
 	
-	sortFolder(...folders) {
+	static sortFolder(...folders) {
 		const folder = folders.shift();
 		if (!folder) return;
 		const children = folder.children;
 		const folders = [];
 		const files = [];
-		for (let i = 0; i < children.length; i++) {
-			if (children[i].className == "mnbm-folder") {
-				folders.push(children[i]);
+		children.forEach((e) => {
+			if (e.className == "mnbm-folder") {
+				folders.push(e);
 				continue;
 			};
-			files.push(children[i]);
-		}
+			files.push(e);
+		});
 		folders.sort((a, b) => a.path.localeCompare(b.path));
 		files.sort((a, b) => a.textNode.innerText.localeCompare(b.textNode.innerText));
 		for (let i = 0; i < files.length; i++) { folder.append(files[i]) }
 		for (let i = 0; i < folders.length; i++) { folder.append(folders[i]) }
-		this.sortFolder(folders);
+		DataManager.sortFolder(folders);
 	}
 	
 	filePath(file) {
@@ -576,7 +569,7 @@ class DataManager extends BMWContent{
 		return split;
 	}
 	
-	splitReduce(split, from = 0, to = split.length) { return split.slice(from, to).reduce((a, b) => a + b, "") }
+	static splitReduce(split, from = 0, to = split.length) { return split.slice(from, to).reduce((a, b) => a + b, "") }
 }
 
 class BookmarkPlugin {
@@ -754,7 +747,7 @@ class BookmarkPlugin {
 			switch (target.dataset.action) {
 				case "erase":
 					data.file.delete(target.parentElement.id);
-					dtManager.removeFile(target.parentElement);
+					dtManager.removeFile(target.parentElement.id);
 					this.saveData();
 					return;
 			}
@@ -1116,7 +1109,7 @@ class BookmarkPlugin {
 		};
 		if (array.length == 0) {
 			this.data.file.delete(file.id);
-			dtManager.removeFile(dtManager.getFile(file.id));
+			dtManager.removeFile(file.id);
 		};
   	};
   	const tree = this.dtManager.getTree();
