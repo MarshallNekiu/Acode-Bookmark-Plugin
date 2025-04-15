@@ -475,7 +475,7 @@ class DataManager extends BMWContent{
 		DataManager.sortFolder(folders);
 	}
 	
-	filePath(file) {
+	static filePath(file) {
 		var folder = file.parentElement;
 		var path = "";
 		while (folder.parentElement.className == "mnbm-folder") {
@@ -495,7 +495,6 @@ class DataManager extends BMWContent{
 				path = folder.path + path;
 				folder = folder.parentElement;
 			}
-			
 			map.push([files[i].id, [i, path, files[i].textNode.innerText]]);
 		}
 		
@@ -518,23 +517,23 @@ class DataManager extends BMWContent{
 	}
 		
 	setTree(tree) {
-		this.list.innerHTML = "";
-		const map = Array.from(tree);
+		const [map, queue] = [Array.from(tree), []];
 		
 		for (let i = 0; i < map.length; i++) {
 			if (map[i][1][0] == i) {
-				this.addFile(map[i][0], map[i][1][1], map[i][1][2]);
+				queue.push([map[i][0], map[i][1][1], map[i][1][2]]);
 				continue;
 			};
-			var path = "";
-			var j = i;
+			var [path, j] = [map[i][1][1], i];
+			
 			while (map[j][1][0] != j) {
-				path = map[j][1][1] + path;
 				j = map[j][1][0];
+				path = map[j][1][1] + path;
 			}
-			path = map[j][1][1] + path;
-			this.addFile(map[i][0], path, map[i][1][2]);
+			queue.push([map[i][0], path, map[i][1][2]]);
 		}
+		this.list.innerHTML = "";
+		queue.forEach((q) => { this.addFile(...q) });
 	}
 	
 	checkFiles() {
@@ -556,15 +555,16 @@ class DataManager extends BMWContent{
 	
 	applyRegex() {
 		const folders = this.list.querySelectorAll(".mnbm-folder");
-		for (let i = 0; i < folders.length; i++) { folders[i].firstChild.textContent = this.regexManager.format(folders[i].path) }
+		folders.forEach((e) => { e.firstChild.textContent = this.regexManager.format(e.path) });
 	}
 	
 	static pathSplit(path) {
 		const split = [""];
 		for (let i = 0; i < path.length - 1; i++) {
 			split[split.length - 1] += path[i];
-			if (path[i] == "/" && /*path.length - 1 != i &&*/ path[i + 1] != "/") split.push("");
+			if (path[i] == "/" && path[i + 1] != "/") split.push("");
 		}
+		path[path.length - 1] += path[path.length - 1].slice(-1);
 		return split;
 	}
 	
@@ -696,7 +696,6 @@ class BookmarkPlugin {
 					return;
 				case "file":
 					bmWindow.setContent(dtManager.controlPanel, dtManager.list);
-					dtManager.applyRegex();
 					bmManager.visible = false;
 					dtManager.visible = true;
 					dtManager.regexManager.visible = false;
