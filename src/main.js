@@ -553,7 +553,7 @@ class BookmarkPlugin {
     this.file = editorManager.activeFile;
     this.buffer = {};
     this.array = [];
-    this.style = document.createElement("style");
+    this.style = tag("style", { type: "text/css", innerHTML: styles });
     this.bmManager = new BookmarkManager();
     this.dtManager = new DataManager();
     this.window = new BMWindow();
@@ -824,72 +824,48 @@ class BookmarkPlugin {
 
     editorManager.on("remove-file", (e) => {
       //debugManager.log("remove-file: " + e.id + " : " + e.filename);
-      if (this.buffer[e.id]) delete this.buffer[e.id];
+      if (this.buffer[e.id])/*!ERRORCASE*/ delete this.buffer[e.id];
     });
-    //alert("ch");
+    
     editorManager.editor.on("change", (e) => {
-      if (e.start.row != e.end.row) {
-        var newArray = [];
-        if (e.action == "insert") {
-          for (let i = 0; i < this.array.length; i++) {
-            if (this.array[i] > e.start.row) {
-              newArray.push(this.array[i] + (e.end.row - e.start.row));
-              continue;
-            }
-            newArray.push(this.array[i]);
-          }
-        } else if (e.action == "remove") {
-          for (let i = 0; i < this.array.length; i++) {
-            if (this.array[i] > e.end.row) {
-              newArray.push(this.array[i] - (e.end.row - e.start.row));
-              continue;
-            }
-            newArray.push(this.array[i]);
-          }
-        }
-        this.array = newArray;
-        this.updateGutter();
-        //debugManager.log(JSON.stringify(e));
-      }
-      if (bmManager.visible) bmManager.writeList(this.array);
+		if (e.start.row != e.end.row) {
+			var newArray = [];
+			if (e.action == "insert") {
+				for (let i = 0; i < this.array.length; i++) {
+					if (this.array[i] > e.start.row) {
+						newArray.push(this.array[i] + (e.end.row - e.start.row));
+						continue;
+					};
+					newArray.push(this.array[i]);
+				}
+			} else if (e.action == "remove") {
+				for (let i = 0; i < this.array.length; i++) {
+					if (this.array[i] > e.end.row) {
+						newArray.push(this.array[i] - (e.end.row - e.start.row));
+						continue;
+					};
+					newArray.push(this.array[i]);
+				}
+			};
+			this.array.splice(0, Infinity, ...newArray);
+			this.updateGutter();
+		//debugManager.log(JSON.stringify(e));
+		};
+		if (bmManager.visible) bmManager.writeList(this.array);
     });
 
     bmManager.makeList(this.array);
     this.updateGutter();
-    //alert("r0");
-    for (let i = 0; i < data.regex.length; i++) {
-    	dtManager.regexManager.addRegex(data.regex[i][0], data.regex[i][1]);
-    }
+    
+    for (let i = 0; i < data.regex.length; i++) { dtManager.regexManager.addRegex(data.regex[i][0], data.regex[i][1]) }
     const tree = new Map();
     data.file.forEach((v, k) => {
-    	debugManager.log(k + " : " + JSON.stringify(v));
     	tree.set(k, v.uri);
-    	debugManager.log(tree.get(k));
+    	debugManager.log(JSON.stringify({ k: v }), "=>", tree.get(k));
     });
-    //alert("r1", JSON.stringify([Array.from(tree), Array.from(data.file)]));
     dtManager.setTree(tree);
-    //alert("r1b", data.file.toString());
-    /*const inF = editorManager.files;
-    debugManager.log(inF + " - " + initFiles);
-    for (let i = 0; i < inF.length; i++) {
-    	debugManager.log(inF[i].id);
-    	debugManager.log(inF[i].filename);
-    	debugManager.log(inF[i].location);
-    	debugManager.log(`${ data.file.get(inF[i].id) }`);
-    	if (!data.file.has(inF[i].id)) continue;
-    	dtManager.removeFile(dtManager.getFile(inF[i].id));
-    	dtManager.addFile(inF[i].id, inF[i].location, inF[i].filename);
-    }
-    //alert("r2");
-    const tree2 = dtManager.getTree();
-    tree2.forEach((v, k) => {
-    	data.file.get(k).uri = v;
-    });*/
-    //alert("r3");
-    const style = this.style;
-    style.type = "text/css";
-    style.innerHTML = styles;
-    document.head.append(style);
+    
+    document.head.append(this.style);
     
     this.updateSettings();
 
