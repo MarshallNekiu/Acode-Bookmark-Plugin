@@ -253,7 +253,6 @@ class RegexManager {
 class DataManager {
 	
 	constructor () {
-		this.nn = "dt";
 		this.controlPanel = tag("div", { className: "mnbm-control-panel" });
 		this.controlPanel.innerHTML = `
 			<button class="mnbm-back" data-action="back"> ≪ </button>
@@ -274,44 +273,35 @@ class DataManager {
 		const folder = this.getFolder(this.list, arrLoc, 0, true);
 		const file = this.newFile(id, fn);
 		folder.append(file);
-		this.sortFolder(folder);
-		this.sortFolder(folder.parentElement);
-		this.sortFolder(this.list);
+		this.sortFolder(folder, this.sortFolder(folder.parentElement, this.sortFolder(this.list);
 	}
 	
-	newFolder(path) {
-		return tag("ul", {
-			className: "mnbm-folder",
-			"path": path,
-			innerText: this.regexManager.format(path),
-		});
-	}
+	newFolder(path) { return tag("ul", { className: "mnbm-folder", "path": path, innerText: this.regexManager.format(path) }) }
 	
 	newFile(id, name) {
-		const e = tag("div", {
+		const li = tag("li", {
 			className: "mnbm-file",
 			"id": id,
-			"name": name,
 			invalid: false,
 			prefixNode: tag("p", { className: "mnbm-prefix", innerText: "-" }),
 			textNode: tag("p", { className: "mnbm-text", innerText: name })
 		});
-		e.append(e.prefixNode, e.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
-		return e;
+		li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
+		return li;
 	}
 	
 	sliceFolder(folder, deep) {
 		const fPath = this.pathSplit(folder.dataset.path);
 		const lPath = this.splitReduce(fPath, 0, deep);
 		const rPath = this.splitReduce(fPath, deep);
-		const lFolder = tag("ul", { className: "mnbm-folder", innerText: this.regexManager.format(lPath), dataset: { path: lPath } });
+		const lFolder = this.newFolder(lPath);
 		folder.parentElement.insertBefore(lFolder, folder);
 		lFolder.append(folder);
-		folder.dataset.path = rPath;
+		folder.path = rPath;
 		folder.firstChild.textContent = this.regexManager.format(rPath);
 	}
 	
-	removeFile(file) { // IF WORKS DO NOT TOUCH
+	removeFile(file) { // CHECK WITH REMOVE_FILE_LOGIC.PNG
 		var folder = file.parentElement;
 		file.remove();
 		while (folder.className == "mnbm-folder") {
@@ -325,8 +315,8 @@ class DataManager {
 				const child = folder.firstElementChild;
 				if (child.className == "mnbm-file") break;
 				parent.insertBefore(child, folder);
-				child.dataset.path = folder.dataset.path + child.dataset.path;
-				child.firstChild.textContent = this.regexManager.format(child.dataset.path);
+				child.path = folder.path + child.path;
+				child.firstChild.textContent = this.regexManager.format(child.path);
 				folder.remove();
 			};
 			folder = parent?.parentElement;
@@ -336,12 +326,12 @@ class DataManager {
 	
 	tryFocus(id) {
 		const files = this.list.querySelectorAll(".mnbm-file");
-		if (this.focus) this.focus.style.background = this.focus.dataset.invalid == "true" ? "#c8141433" : "#ffffff66";
+		if (this.focus) this.focus.style.background = this.focus.invalid ? "#c8141433" : "#ffffff66";
 		this.focus = null;
 		for (let i = 0; i < files.length; i++) {
-			if (files[i].dataset.id == id) {
+			if (files[i].id == id) {
 				this.focus = files[i];
-				const focused = this.focus.dataset.id == editorManager.activeFile.id;
+				const focused = this.focus.id == editorManager.activeFile.id;
 				if (focused) this.focus.style.background = "#c8c8ff66";
 				return;
 			};
@@ -364,9 +354,7 @@ class DataManager {
 	
 	getFile(id) {
 		const files = this.list.querySelectorAll(".mnbm-file");
-		for (let i = 0; i < files.length; i++) {
-			if (files[i].dataset.id == id) return files[i];
-		}
+		for (let i = 0; i < files.length; i++) { if (files[i].id == id) return files[i] }
 		return null;
 	}
 	
@@ -389,7 +377,7 @@ class DataManager {
 				continue;
 			};
 			
-			const fpath = this.pathSplit(folder.dataset.path);
+			const fpath = this.pathSplit(folder.path);
 			
 			for (let i = 0; i < fpath.length; i++) {
 				const [FOLDER_FOUND, REQUEST_LIMIT, FOLDER_LIMIT, FIRST_FOLDER] = [
@@ -434,7 +422,9 @@ class DataManager {
 		return folder;
 	}
 	
-	sortFolder(folder) {
+	sortFolder(...folders) {
+		const folder = folders.shift();
+		if (!folder) return;
 		const children = folder.children;
 		const folders = [];
 		const files = [];
@@ -445,17 +435,18 @@ class DataManager {
 			};
 			files.push(children[i]);
 		}
-		folders.sort((a, b) => a.dataset.path.localeCompare(b.dataset.path));
-		files.sort((a, b) => this.fileText(a).localeCompare(this.fileText(b)));
+		folders.sort((a, b) => a.path.localeCompare(b.path));
+		files.sort((a, b) => a.textNode.innerText.localeCompare(b.textNode.innerText));
 		for (let i = 0; i < files.length; i++) { folder.append(files[i]) }
 		for (let i = 0; i < folders.length; i++) { folder.append(folders[i]) }
+		this.sortFolder(folders);
 	}
 	
 	filePath(file) {
 		var folder = file.parentElement;
 		var path = "";
 		while (folder.parentElement.className == "mnbm-folder") {
-			path = folder.dataset.path + path;
+			path = folder.path + path;
 			folder = folder.parentElement;
 		}
 		return path;
@@ -468,12 +459,11 @@ class DataManager {
 			var folder = files[i].parentElement;
 			var path = "";
 			while (folder.className == "mnbm-folder") {
-				path = folder.dataset.path + path;
+				path = folder.path + path;
 				folder = folder.parentElement;
 			}
 			
-			//alert("file", JSON.stringify(files[i].dataset));
-			map.push([files[i].dataset.id, [i, path, this.fileText(files[i])]]);
+			map.push([files[i].id, [i, path, files[i].textNode.innerText]]);
 		}
 		
 		if (uri) return map;
@@ -497,7 +487,7 @@ class DataManager {
 	setTree(tree) {
 		this.list.innerHTML = "";
 		const map = Array.from(tree);
-		alert("st", JSON.stringify(map));
+		
 		for (let i = 0; i < map.length; i++) {
 			if (map[i][1][0] == i) {
 				this.addFile(map[i][0], map[i][1][1], map[i][1][2]);
@@ -512,7 +502,6 @@ class DataManager {
 			path = map[j][1][1] + path;
 			this.addFile(map[i][0], path, map[i][1][2]);
 		}
-		alert("gt", JSON.stringify(Array.from(this.getTree())));
 	}
 	
 	checkFiles() {
@@ -534,12 +523,8 @@ class DataManager {
 	
 	applyRegex() {
 		const folders = this.list.querySelectorAll(".mnbm-folder");
-		for (let i = 0; i < folders.length; i++) {
-			folders[i].firstChild.textContent = this.regexManager.format(folders[i].dataset.path);
-		}
+		for (let i = 0; i < folders.length; i++) { folders[i].firstChild.textContent = this.regexManager.format(folders[i].path) }
 	}
-	
-	fileText(file) { return file.dataset.name }
 	
 	pathSplit(path) {
 		const split = [""];
