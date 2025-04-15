@@ -896,10 +896,17 @@
 	
 	class Test {
 		static spub = tag("p");
-		static signalTest = new Event("test");
+		static signalTest = new CustomEvent("test", { detail: { a: "0" } });
 		static #spriv = tag("p");
 		pub = tag("p");
 		#priv = tag("p");
+		v = false;
+		
+		set v(x) { this.v = x }
+		
+		get #erase() { return "erase" }
+		
+		#getPriv() { return "priv" }
 		
 		constructor() {
 			this.#testing();
@@ -907,6 +914,8 @@
 			//this.spriv = Test.spriv;
 			//this.pub = this.pub;
 			//this.#priv = this.#priv;
+			debug(this.#erase);
+			debug(this.#getPriv());
 			document.body.dispatchEvent(Test.signalTest);
 		}
 		
@@ -919,7 +928,7 @@
 		async #testing() { debug("testing") }
 	}
 	
-	document.body.addEventListener("test", (a = "000", ...x) => { debug(a, x, 0) });
+	document.body.addEventListener("test", (e) => { debug(e.detail) });
 	
 	const test = new Test();
 	const test2 = new Test();
@@ -929,6 +938,9 @@
 	//debug(test.spriv, test2.spriv, test.spriv == test2.spriv);
 	//debug(test.spub, test.spriv, test.pub, test.priv);
 	//debug(test.spub == test2.spub, test.spriv == test2.spriv, test.pub == test2.pub, test.priv == test2.priv);
+	debug("v", test.v);
+	test.v = true;
+	debug(test.v);
 	
 	
 </script>

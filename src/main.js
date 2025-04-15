@@ -47,19 +47,20 @@ class BMWindow {
 	
 	attachContent(...wc) {
 		const h = this.panel.querySelector(".mnbm-header");
-		const l = h.querySelector(".mnbm-close");
+		const x = h.querySelector(".mnbm-close");
 		const c = this.panel.querySelector("mnbm-container")
 		wc.forEach((v) {
 			h.append(v.controlPanel);
 			c.append(v.list);
 		})
-		h.append(l);
+		h.append(x);
 	}
 	
 	hasContent(wc) { return wc.closest(".mnbm-window") == this.panel }
 	
 	setContent(wc) {
 		if (this.content) this.content.visible = false;
+		this.content = wc;
 		wc.visible = true;
 	}
 	
@@ -79,29 +80,25 @@ class BMWindow {
 			document.body.append(this.panel);
 		} else if (!x && this.visible) {
 			this.panel.remove();
-		}
+		};
 		if (this.content) this.content.visible = x;
 	}
 }
 
 class BMWContent {
-	#controlPanel;
-	#list;
-	#visible;
+	visible = false;
 	
-	constructor() {
-		this.#controlPanel = tag("div", { className: "mnbm-control-panel" });
-		this.#list = tag("ul", { className: "mnbm-list" });
-		this.#visible = false;
-	}
+	#controlPanel = tag("div", { className: "mnbm-control-panel" });
+	#list = tag("ul", { className: "mnbm-list" });
 	
 	get controlPanel() { return this.#controlPanel }
 	
 	get list() { return this.#list }
 	
-	set visible {
-		this.#controlPanel.style.visibility == "hidden";
-		this.#list.style.visibility == "hidden";
+	set visible(x) {
+		this.controlPanel.style.visibility = x ? "visible" : "hidden";
+		this.list.style.visibility = x ? "visible" : "hidden";
+		this.visible = x;
 	}
 }
 
@@ -132,17 +129,14 @@ class Debugger extends BMWContent {
 	
 	log(...logs) {
 		const log = logs.shift();
-		if (!toLog) return;
+		if (!log) return;
 		const li = tag("li", {
 			className: "mnbm-item",
-			prefixNode: tag("p", { className: "mnbm-prefix" }),
-			textNode: tag("p", { className: "mnbm-text" })
+			prefixNode: tag("p", { className: "mnbm-prefix", innerText: this.list.childElementCount }),
+			textNode: tag("p", { className: "mnbm-text", innerText: JSON.stringify(log), scrollLeft: 100000 })
 		});
 		li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
 		this.list.append(li);
-		li.prefixNode.innerText = (this.list.childElementCount - 1);
-		li.textNode.innerText = JSON.stringify(log);
-		li.textNode.scrollLeft = 100000;
 		this.log(logs);
 	}
 	
@@ -169,76 +163,79 @@ class Debugger extends BMWContent {
 
 const debugManager = new Debugger();
 
-class BookmarkManager {
+class BookmarkManager extends BMWContent {
 	
 	constructor () {
-		this.controlPanel = tag("div", {className: "mnbm-control-panel"});
+		super();
 		this.controlPanel.innerHTML = `
 			<button class="mnbm-toggle" data-action="toggle"> ⇌ </button>
 			<button class="mnbm-save" data-action="save"> ↑ </button>
 			<button class="mnbm-load" data-action="load"> ↓ </button>
 			<button class="mnbm-file" data-action="file"> ≡ </button>
 		`;
-		this.list = tag("ul", {className: "mnbm-list"});
-		this.visible = false;
+		
+		this.list.addEventListener("click", (e) => {
+			const target = e.target.closest("[data-action]");
+			if (!target) return;
+			
+			const event = new CustomEvent("bmclick", { details: {
+				action: target.dataset.action,
+				row: parseInt(target.parentElement.prefixNode.innerText)
+			} });
+			this.list.dispatchEvent(event);
+		});
 	}
 	
-	newItem(row) {
+	#newItem(row) {
 		const li = tag("li", {
 			className: "mnbm-item",
-			prefixNode: tag("p", { className: "mnbm-prefix" dataset: { action: "select" }, innerText: row ? `${row + 1}` : "1" }),
-			textNode: tag("p", { className: "mnbm-text", dataset: { action: "select" }, innerText: row ? editorManager.activeFile.session.getLine(row) : "" })
+			prefixNode: tag("p", { className: "mnbm-prefix" dataset: { action: "select" }, innerText: (row ?? 0) + 1 }),
+			textNode: tag("p", { className: "mnbm-text", dataset: { action: "select" }, innerText: editorManager.activeFile.session.getLine(row ?? 0) })
 		});
 		li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
 		return li;
 	}
 	
-	addItem(row, idx) {
-		const last = this.list.childElementCount;
-		this.list.append(this.newItem(row));
-		if (idx != last) this.moveItem(last, idx); 
+	addItem(row, to) {
+		const idx = this.list.childElementCount;
+		this.list.append(this.#newItem(row));
+		if (to != idx) this.#moveItem(idx, to); 
 	}
 	
-	getItem(idx) { return this.list.children.item(idx) }
-	
-	getItemRow(itm) { return parseInt(itm.prefixNode.innerText) }
-	
-	setItemRow(itm, row) {
-		itm.prefixNode.innerText = row + 1;
-		itm.textNode.innerText = editorManager.activeFile.session.getLine(row);
-	}
-	
-	moveItem(bgn, fnsh) {
+	#moveItem(bgn, fnsh) {
 		const chn = this.list.children;
 		this.list.insertBefore(chn.item(bgn), chn.item(fnsh));
 	}
 	
+	#setItemRow(itm, row) {
+		itm.prefixNode.innerText = row + 1;
+		itm.textNode.innerText = editorManager.activeFile.session.getLine(row);
+	}
+	
+	removeItem(idx) { this.list.children.item(idx).remove() }
+	
 	makeList(array) {
 		var newList = [];
 		this.list.innerHTML = ""
-		for (let i = 0; i < array.length; i++) { newList.push(this.newItem()) }
+		array.forEach((i) => { newList.push(this.newItem()) });
 		this.list.append(...newList);
 		if (this.visible) this.editList(array);
 	}
 	
 	editList(array) {
 		const chn = this.list.children;
-		for (let i = 0; i < array.length; i++) { this.setItemRow(chn.item(i), array[i]) }
+		for (let i = 0; i < array.length; i++) { this.#setItemRow(chn.item(i), array[i]) }
 	}
 }
-
-const signalChanged = new Event("regexchange");
    
-class RegexManager {
+class RegexManager extends BMWContent {
 	
 	constructor() {
-		this.controlPanel = tag("div", {className: "mnbm-control-panel"});
+		super();
 		this.controlPanel.innerHTML = `
 			<button class="mnbm-back" data-action="back"> ≪ </button>
 			<button class="mnbm-regex-add" data-action="regex-add"> (+.*) </button>
 		`;
-		this.list = tag("ul", { className: "mnbm-list" });
-		this.visible = false;
 		
 		this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.addRegex() });
 		
@@ -258,11 +255,11 @@ class RegexManager {
 			if (!target) return;
 			
 			if (target.disabled) {
-				target.style.opacity = 0.5;
+				target.style.opacity = 1;
 				target.disabled = false;
 				return;
 			};
-			target.style.opacity = 1;
+			target.style.opacity = 0.5;
 			target.disabled = true;
 		});
 	}
@@ -271,60 +268,56 @@ class RegexManager {
 		const li = tag("li", {
 			className: "mnbm-item",
 			disabled: false,
-			regexNode: tag("input", { placeholder: "RegEx: e.g com\\.termux" }),
-			sliceNode: tag("input", { placeholder: "SliceMatch: e.g ::" })
+			regexNode: tag("input", { placeholder: "RegEx: e.g com\\.termux", value: rgx }),
+			sliceNode: tag("input", { placeholder: "SliceMatch: e.g ::", value: sm })
 		});
 		li.append(li.regexNode, li.sliceNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
 		this.list.append(li);
-		li.regexNode.value = rgx;
-		li.sliceNode.value = sm;
 	}
 	
 	getRegex() {
-		const chn = this.list.children;
 		const arr = [];
-		for (let i = 0; i < chn.length; i++) { arr.push([chn[i].regexNode.value, chn[i].sliceNode.value]) }
+		this.list.children.forEach((e) => { arr.push([e.regexNode.value, e.sliceNode.value]) });
 		return arr;
 	}
 	
 	format(x) {
-		const chn = this.list.children;
-		for (let i = 0; i < chn.length; i++) {
-			if (chn.item(i).disabled) continue;
-			const r = new RegExp(chn.item(i).regexNode.value);
-			if (x.search(r) > -1) x = x.split(chn.item(i).sliceNode.value).pop(); // if (r.test(x))
-		}
+		this.list.children.forEach((e) => {
+			if (e.disabled) continue;
+			const r = new RegExp(e.regexNode.value);
+			if (x.search(r) > -1/*r.test(x)*/) x = x.split(e.sliceNode.value).pop();
+		});
 	  return x;
 	}
 }
 
-class DataManager {
+class DataManager extends BMWContent{
+	#focus = null;
+	#regexManager = new RegexManager();
+	
+	get regexManager() { return this.#regexManager }
 	
 	constructor () {
-		this.controlPanel = tag("div", { className: "mnbm-control-panel" });
+		super();
 		this.controlPanel.innerHTML = `
 			<button class="mnbm-back" data-action="back"> ≪ </button>
 			<button class="mnbm-check-files" data-action="check-files"> (...) </button>
 			<button class="mnbm-regex-visible" data-action="regex-visible"> (.*) </button>
 		`;
-		this.list = tag("ul", { className: "mnbm-list" });
-		this.focus;
-		this.regexManager = new RegexManager();
-		this.visible = false;
 		
 		this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.toggleRegex() });
 		this.regexManager.controlPanel.firstElementChild.addEventListener("click", (e) => { this.toggleRegex() });
 	}
 	
 	addFile(id, loc, fn) {
-		const arrLoc = this.pathSplit(loc);
-		const folder = this.getFolder(this.list, arrLoc, 0, true);
-		const file = this.newFile(id, fn);
+		const arrLoc = DataManager.pathSplit(loc);
+		const folder = this.#getFolder(this.list, arrLoc, 0, true);
+		const file = this.#newFile(id, fn);
 		folder.append(file);
 		this.sortFolder(folder, this.sortFolder(folder.parentElement, this.sortFolder(this.list);
 	}
 	
-	newFolder(path) { return tag("ul", { className: "mnbm-folder", "path": path, innerText: this.regexManager.format(path) }) }
+	#newFolder(path) { return tag("ul", { className: "mnbm-folder", "path": path, innerText: this.regexManager.format(path) }) }
 	
 	newFile(id, name) {
 		const li = tag("li", {
@@ -339,7 +332,7 @@ class DataManager {
 	}
 	
 	sliceFolder(folder, deep) {
-		const fPath = this.pathSplit(folder.dataset.path);
+		const fPath = DataManager.pathSplit(folder.dataset.path);
 		const lPath = this.splitReduce(fPath, 0, deep);
 		const rPath = this.splitReduce(fPath, deep);
 		const lFolder = this.newFolder(lPath);
@@ -425,7 +418,7 @@ class DataManager {
 				continue;
 			};
 			
-			const fpath = this.pathSplit(folder.path);
+			const fpath = DataManager.pathSplit(folder.path);
 			
 			for (let i = 0; i < fpath.length; i++) {
 				const [FOLDER_FOUND, REQUEST_LIMIT, FOLDER_LIMIT, FIRST_FOLDER] = [
@@ -574,11 +567,11 @@ class DataManager {
 		for (let i = 0; i < folders.length; i++) { folders[i].firstChild.textContent = this.regexManager.format(folders[i].path) }
 	}
 	
-	pathSplit(path) {
+	static pathSplit(path) {
 		const split = [""];
-		for (let i = 0; i < path.length; i++) {
+		for (let i = 0; i < path.length - 1; i++) {
 			split[split.length - 1] += path[i];
-			if (path[i] == "/" && path.length - 1 != i && path[i + 1] != "/") split.push("");
+			if (path[i] == "/" && /*path.length - 1 != i &&*/ path[i + 1] != "/") split.push("");
 		}
 		return split;
 	}
@@ -720,20 +713,16 @@ class BookmarkPlugin {
 			}
 		});
 		
-		bmManager.list.addEventListener("click", (e) => {
-			const target = e.target.closest("[data-action]");
-			if (!target) return;
-			const row = bmManager.getItemRow(target.parentElement);
-			
-			switch (target.dataset.action) {
+		bmManager.list.addEventListener("bmclick", (e) => {
+			switch (e.details.action) {
 				case "select":
-					editorManager.editor.gotoLine(row + 1);
+					editorManager.editor.gotoLine(e.details.row + 1);
 					return;
 				case "erase":
-					const idx = this.array.indexOf(row);
-					this.array.splice(row, 1);
-					editorManager.editor.session.removeGutterDecoration(row, "mnbm-gutter");
-					target.parentElement.remove();
+					const idx = this.array.indexOf(e.details.row);
+					this.array.splice(idx, 1);
+					bmManager.removeItem(idx);
+					editorManager.editor.session.removeGutterDecoration(e.details.row, "mnbm-gutter");
 					return;
 			}
 		});
@@ -951,7 +940,7 @@ class BookmarkPlugin {
   	const idx = this.array.indexOf(ln);
   	if (idx >= 0) {
       this.array = this.array.slice(0, idx).concat(this.array.slice(idx + 1));
-      this.bmManager.getItem(idx).remove();
+      this.bmManager.removeItem(idx);
       editorManager.editor.session.removeGutterDecoration(ln, "mnbm-gutter");
     } else {
       this.addLine(ln);
