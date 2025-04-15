@@ -7,8 +7,68 @@ const settings = acode.require("settings");
 const SideButton = acode.require("sideButton");
 const alert = acode.require("alert");
 
-const signalShow = new Event("show");
-const signalHide = new Event("hide");
+class Debugger {
+	
+	constructor () {
+		this.controlPanel = tag("div", {className: "mnbm-control-panel"});
+		this.controlPanel.innerHTML = `
+			<button class="mnbm-debug-data" data-action="data"> Data </button>
+			<button class="mnbm-debug-buffer" data-action="buffer"> Buffer </button>
+			<button class="mnbm-debug-file" data-action="file"> File </button>
+			<button class="mnbm-debug-array" data-action="array"> Array </button>
+		`;
+		this.list = tag("ul", {className: "mnbm-list"});
+		this.visible = false;
+		
+		this.list.addEventListener("click", (e) => {
+			const target = e.target.closest("[data-action]");
+			if (!target) return;
+			
+			switch (target.dataset.action) {
+				case "erase":
+					this.unLog(target.parentElement);
+					return;
+			}
+		});
+	}
+	
+	log(x) {
+		const li = tag("li", {
+			className: "mnbm-item",
+			prefixNode: tag("p", { className: "mnbm-prefix" }),
+			textNode: tag("p", { className: "mnbm-text" })
+		});
+		li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
+		this.list.append(li);
+		li.prefixNode.innerText = (this.list.childElementCount - 1);
+		li.textNode.innerText = x;
+		li.textNode.scrollLeft = 100000;
+	}
+	
+	unLog(itm) {
+		let e = itm.nextElementSibling;
+		let i = parseInt(itm.prefixNode.innerText);
+		itm.remove();
+		while (e) {
+			e.prefixNode.innerText = i;
+			e = e.nextElementSibling;
+			i += 1;
+		}
+	}
+	
+	align() {
+		const w = this.list.lastElementChild.prefixNode.offsetWidth;
+		var e = this.list.firstElementChild;
+		while (e) {
+			e.prefixNode.style.width = w + "px";
+			e = e.nextElementSibling;
+		}
+	}
+}
+
+const debugManager = new Debugger();
+
+const [signalShow, signalHide] = [new Event("show"), new Event("hide")];
 
 class BMWindow {
 	
@@ -66,41 +126,38 @@ class BookmarkManager {
 	constructor () {
 		this.controlPanel = tag("div", {className: "mnbm-control-panel"});
 		this.controlPanel.innerHTML = `
-	    <button class="mnbm-toggle" data-action="toggle"> ⇌ </button>
-	    <button class="mnbm-save" data-action="save"> ↑ </button>
-	    <button class="mnbm-load" data-action="load"> ↓ </button>
-	    <button class="mnbm-file" data-action="file"> ≡ </button>
+			<button class="mnbm-toggle" data-action="toggle"> ⇌ </button>
+			<button class="mnbm-save" data-action="save"> ↑ </button>
+			<button class="mnbm-load" data-action="load"> ↓ </button>
+			<button class="mnbm-file" data-action="file"> ≡ </button>
 		`;
 		this.list = tag("ul", {className: "mnbm-list"});
 		this.visible = false;
 	}
 	
+	newItem(row) {
+		const li = tag("li", {
+			className: "mnbm-item",
+			prefixNode: tag("p", { className: "mnbm-prefix" dataset: { action: "select" }, innerText: row ? `${row + 1}` : "1" }),
+			textNode: tag("p", { className: "mnbm-text", dataset: { action: "select" }, innerText: row ? editorManager.activeFile.session.getLine(row) : "" })
+		});
+		li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
+		return li;
+	}
+	
 	addItem(row, idx) {
-		const listItem = `
-	    <li class="mnbm-item">
-	      <p class="mnbm-prefix" data-action="select"> </p>
-	      <p class="mnbm-text" data-action="select"> </p>
-	      <button class="mnbm-erase" data-action="erase"> X </button>
-	    </li>
-		`;
 		const last = this.list.childElementCount;
-  	this.list.insertAdjacentHTML("beforeend", listItem);
-  	this.setItemRow(this.list.lastElementChild, row);
-  	if (idx != last) this.moveItem(last, idx); 
+		this.list.append(this.newItem(row));
+		if (idx != last) this.moveItem(last, idx); 
 	}
 	
-	getItem(idx) {
-		return this.list.children.item(idx);
-	}
+	getItem(idx) { return this.list.children.item(idx) }
 	
-	getItemRow(itm) {
-		return parseInt(itm.firstElementChild.innerText);
-	}
+	getItemRow(itm) { return parseInt(itm.prefixNode.innerText) }
 	
 	setItemRow(itm, row) {
-		const chn = itm.children;
-		chn.item(0).innerText = row + 1;
-		chn.item(1).innerText = editorManager.activeFile.session.getLine(row);
+		itm.prefixNode.innerText = row + 1;
+		itm.textNode.innerText = editorManager.activeFile.session.getLine(row);
 	}
 	
 	moveItem(bgn, fnsh) {
@@ -109,29 +166,16 @@ class BookmarkManager {
 	}
 	
 	makeList(array) {
-		var newHTML = "";
-		for (let i = 0; i < array.length; i++) {
-			newHTML += `
-				<li class="mnbm-item">
-					<p class="mnbm-prefix" data-action="select"> </p>
-					<p class="mnbm-text" data-action="select"> </p>
-					<button class="mnbm-erase" data-action="erase"> X </button>
-				</li>
-			`;
-		}
-		this.list.innerHTML = newHTML;
+		var newList = [];
+		this.list.innerHTML = ""
+		for (let i = 0; i < array.length; i++) { newList.push(this.newItem()) }
+		this.list.append(...newList);
 		if (this.visible) this.editList(array);
 	}
 	
 	editList(array) {
 		const chn = this.list.children;
-		for (let i = 0; i < array.length; i++) {
-			this.setItemRow(chn.item(i), array[i]);
-		}
-	}
-	
-	clearList() {
-		this.list.innerHTML = "";
+		for (let i = 0; i < array.length; i++) { this.setItemRow(chn.item(i), array[i]) }
 	}
 }
 
@@ -142,8 +186,8 @@ class RegexManager {
 	constructor() {
 		this.controlPanel = tag("div", {className: "mnbm-control-panel"});
 		this.controlPanel.innerHTML = `
-	    <button class="mnbm-back" data-action="back"> ≪ </button>
-	    <button class="mnbm-regex-add" data-action="regex-add"> (+.*) </button>
+			<button class="mnbm-back" data-action="back"> ≪ </button>
+			<button class="mnbm-regex-add" data-action="regex-add"> (+.*) </button>
 		`;
 		this.list = tag("ul", { className: "mnbm-list" });
 		this.visible = false;
@@ -151,62 +195,56 @@ class RegexManager {
 		this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.addRegex() });
 		
 		this.list.addEventListener("click", async (e) => {
-      const target = e.target.closest("[data-action]");
-      if (!target) return;
-
-      switch (target.dataset.action) {
-        case "erase":
-        	target.parentElement.remove();
-        	return;
-      }
+			const target = e.target.closest("[data-action]");
+			if (!target) return;
+			
+			switch (target.dataset.action) {
+				case "erase":
+					target.parentElement.remove();
+					return;
+			}
 		});
 		
 		this.list.addEventListener("dbclick", async (e) => {
-      const target = e.target.closest("[data-disabled]");
-      if (!target) return;
-
-      switch (target.dataset.disabled) {
-        case "true":
-        	target.style.opacity = 0.5;
-        	target.dataset.disabled = "false";
-        	return;
-        case "false":
-        	target.style.opacity = 1;
-        	target.dataset.disabled = "true";
-        	return;
-      }
+			const target = e.target.closest(".mnbm-item");
+			if (!target) return;
+			
+			if (target.disabled) {
+				target.style.opacity = 0.5;
+				target.disabled = false;
+				return;
+			};
+			target.style.opacity = 1;
+			target.disabled = true;
 		});
 	}
 	
 	addRegex(rgx = "", sm = "") {
-		const listItem = `
-	    <li class="mnbm-item" data-disabled="false">
-	      <input placeholder="RegEx: e.g com\\.termux" />
-	      <input placeholder="SliceMatch: e.g ::" />
-	      <button class="mnbm-erase" data-action="erase"> X </button>
-	    </li>
-		`;
-		this.list.insertAdjacentHTML("beforeend", listItem);
-		this.list.lastElementChild.firstElementChild.value = rgx;
-		this.list.lastElementChild.children.item(1).value = sm;
+		const li = tag("li", {
+			className: "mnbm-item",
+			disabled: false,
+			regexNode: tag("input", { placeholder: "RegEx: e.g com\\.termux" }),
+			sliceNode: tag("input", { placeholder: "SliceMatch: e.g ::" })
+		});
+		li.append(li.regexNode, li.sliceNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
+		this.list.append(li);
+		li.regexNode.value = rgx;
+		li.sliceNode.value = sm;
 	}
 	
 	getRegex() {
 		const chn = this.list.children;
 		const arr = [];
-		for (let i = 0; i < chn.length; i++) {
-			arr.push([chn[i].firstElementChild.value, chn[i].children.item(1).value]);
-		}
+		for (let i = 0; i < chn.length; i++) { arr.push([chn[i].regexNode.value, chn[i].sliceNode.value]) }
 		return arr;
 	}
 	
 	format(x) {
 		const chn = this.list.children;
 		for (let i = 0; i < chn.length; i++) {
-			if (chn.item(i).dataset.disabled == "true") continue;
-			const r = new RegExp(chn.item(i).firstElementChild.value);
-			// r.test(x)
-			if (x.search(r) > -1) x = x.split(chn.item(i).children.item(1).value).pop();
+			if (chn.item(i).disabled) continue;
+			const r = new RegExp(chn.item(i).regexNode.value);
+			if (x.search(r) > -1) x = x.split(chn.item(i).sliceNode.value).pop(); // if (r.test(x))
 		}
 	  return x;
 	}
@@ -244,7 +282,7 @@ class DataManager {
 	newFolder(path) {
 		return tag("ul", {
 			className: "mnbm-folder",
-			"path": loc,
+			"path": path,
 			innerText: this.regexManager.format(path),
 		});
 	}
@@ -513,66 +551,6 @@ class DataManager {
 	}
 	
 	splitReduce(split, from = 0, to = split.length) { return split.slice(from, to).reduce((a, b) => a + b, "") }
-}
-
-class Debugger {
-	
-	constructor () {
-		this.controlPanel = tag("div", {className: "mnbm-control-panel"});
-		this.controlPanel.innerHTML = `
-      <button class="mnbm-debug-data" data-action="data"> Data </button>
-      <button class="mnbm-debug-buffer" data-action="buffer"> Buffer </button>
-      <button class="mnbm-debug-file" data-action="file"> File </button>
-      <button class="mnbm-debug-array" data-action="array"> Array </button>
-		`;
-		this.list = tag("ul", {className: "mnbm-list"});
-		this.visible = false;
-		
-		this.list.addEventListener("click", (e) => {
-      const target = e.target.closest("[data-action]");
-      if (!target) return;
-
-      switch (target.dataset.action) {
-        case "erase":
-          this.unLog(target.parentElement);
-          return;
-      }
-    });
-	}
-	
-	log(x) {
-		const listItem = `
-	    <li class="mnbm-item">
-	      <p class="mnbm-prefix" data-acton="select"> </p>
-	      <p class="mnbm-text" data-action="select"> </p>
-	      <button class="mnbm-erase" data-action="erase"> X </button>
-	    </li>
-		`;
-		this.list.insertAdjacentHTML("beforeend", listItem);
-		this.list.lastElementChild.firstElementChild.innerText = (this.list.childElementCount - 1);
-		this.list.lastElementChild.children.item(1).innerText = x;
-		this.list.lastElementChild.children.item(1).scrollLeft = 100000;
-	}
-	
-	unLog(itm) {
-		let e = itm.nextElementSibling;
-		let i = parseInt(itm.firstElementChild.innerText);
-		itm.remove();
-		while (e) {
-			e.firstElementChild.innerText = i + ":";
-			e = e.nextElementSibling;
-			i += 1;
-		}
-	}
-	
-	align() {
-		const s = this.list.lastElementChild.firstElementChild.offsetWidth;// / this.list.lastElementChild.offsetWidth) * 100;
-		var e = this.list.firstElementChild;
-		while (e) {
-			e.firstElementChild.style.width = s + "px";
-			e = e.nextElementSibling;
-		}
-	}
 }
 
 class BookmarkPlugin {
