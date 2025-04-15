@@ -471,8 +471,7 @@ class DataManager extends BMWContent{
 		});
 		folders.sort((a, b) => a.path.localeCompare(b.path));
 		files.sort((a, b) => a.textNode.innerText.localeCompare(b.textNode.innerText));
-		for (let i = 0; i < files.length; i++) { folder.append(files[i]) }
-		for (let i = 0; i < folders.length; i++) { folder.append(folders[i]) }
+		folder.append(...files, ...folders);
 		DataManager.sortFolder(folders);
 	}
 	
