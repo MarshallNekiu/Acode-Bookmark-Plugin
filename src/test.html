@@ -894,6 +894,10 @@
 	document.body.lastElementChild.style.visibility = "hidden";
 	//document.body.lastElementChild.style.visibility = "visible";
 	
+	class T0 {
+		t = "000";
+	}
+	
 	class Test {
 		static spub = tag("p");
 		static signalTest = new CustomEvent("test", { detail: { a: "0" } });
@@ -901,6 +905,11 @@
 		pub = tag("p");
 		#priv = tag("p");
 		v = false;
+		#cp = [0];
+		t = new T0();
+		#window = "w";
+		//var vt = "vt";
+		//let lt = "lt";
 		
 		set v(x) { this.v = x }
 		
@@ -909,15 +918,23 @@
 		static #getPriv() { return "priv" }
 		
 		constructor() {
+			for (var i = 0; i < 3; i++) {}
+			debug(i);
 			this.#testing();
+			//read this.cp = [0];
 			//this.spub = Test.spub;
 			//this.spriv = Test.spriv;
 			//this.pub = this.pub;
 			//this.#priv = this.#priv;
+			//this.#cp = [1];
+			//debug(vt);//, this.lt);
+			debug(this.#cp, this.cp, this.t.t, this.#window, this.gw());
 			debug(this.#erase);
 			debug(Test.#getPriv());
 			document.body.dispatchEvent(Test.signalTest);
 		}
+		
+		gw() { return this.#window }
 		
 		static get spriv() { return Test.#spriv }
 		
