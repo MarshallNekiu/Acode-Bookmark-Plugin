@@ -250,10 +250,9 @@ class RegexManager extends BMWContent {
 			<button class="mnbm-back" data-action="back"> ≪ </button>
 			<button class="mnbm-regex-add" data-action="regex-add"> (+.*) </button>
 		`;
-		
 		this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.addRegex() });
 		
-		this.list.addEventListener("click", async (e) => {
+		this.list.addEventListener("click", (e) => {
 			const target = e.target.closest("[data-action]");
 			if (!target) return;
 			
@@ -263,8 +262,7 @@ class RegexManager extends BMWContent {
 					return;
 			}
 		});
-		
-		this.list.addEventListener("dbclick", async (e) => {
+		this.list.addEventListener("dbclick", (e) => {
 			const target = e.target.closest(".mnbm-item");
 			if (!target) return;
 			
@@ -291,17 +289,17 @@ class RegexManager extends BMWContent {
 	
 	getRegex() {
 		const arr = [];
-		this.list.children.forEach((e) => { arr.push([e.regexNode.value, e.sliceNode.value]) });
+		for (let e of this.list.children) { arr.push([e.regexNode.value, e.sliceNode.value]) }
 		return arr;
 	}
 	
 	format(x) {
-		this.list.children.forEach((e) => {
+		for (let e of this.list.children) {
 			if (e.disabled) return;
 			const r = new RegExp(e.regexNode.value);
-			if (x.search(r) > -1/*r.test(x)*/) x = x.split(e.sliceNode.value).pop();
-		});
-	  return x;
+			if (x.search(r) > -1) x = x.split(e.sliceNode.value).pop(); // r.test(x)
+		}
+		return x;
 	}
 }
 
@@ -473,16 +471,15 @@ class DataManager extends BMWContent{
 	sortFolder(...queue) {
 		const folder = queue.shift();
 		if (!folder) return;
-		const children = folder.children;
 		const folders = [];
 		const files = [];
-		children.forEach((e) => {
+		for (let e of folder.children) {
 			if (e.className == "mnbm-folder") {
 				folders.push(e);
 				return;
 			};
 			files.push(e);
-		});
+		}
 		folders.sort((a, b) => a.path.localeCompare(b.path));
 		files.sort((a, b) => a.textNode.innerText.localeCompare(b.textNode.innerText));
 		folder.append(...files, ...folders);
