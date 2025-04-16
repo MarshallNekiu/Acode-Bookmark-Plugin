@@ -1,4 +1,4 @@
-
+<!--
 <head>
 	<style>
 		body {
@@ -895,10 +895,20 @@
 	//document.body.lastElementChild.style.visibility = "visible";
 	
 	class T0 {
-		t = "000";
+		#scp = {x: "scp"};
+		
+		constructor() {
+			debug(this.scp, this.#scp);
+			this.#scp = {x: "scp1", y: "scp1"};
+			this.tst();
+		}
+		
+		tst() { debug("jkl", this.scp, this.#scp) }
+		
+		get scp() { return this.#scp }
 	}
 	
-	class Test {
+	class Test extends T0 {
 		static spub = tag("p");
 		static signalTest = new CustomEvent("test", { detail: { a: "0" } });
 		static #spriv = tag("p");
@@ -918,6 +928,10 @@
 		static #getPriv() { return "priv" }
 		
 		constructor() {
+			super();
+			//this.tst();
+			//debug(this.scp);
+			//this.scp.x = "scp2";
 			for (var i = 0; i < 3; i++) {}
 			debug(i);
 			this.#testing();
@@ -932,7 +946,13 @@
 			debug(this.#erase);
 			debug(Test.#getPriv());
 			document.body.dispatchEvent(Test.signalTest);
+			this.init();
 		}
+		
+		async init() {
+			//debug(this.scp);
+		}
+
 		
 		gw() { return this.#window }
 		
@@ -961,3 +981,4 @@
 	
 	
 </script>
+-->

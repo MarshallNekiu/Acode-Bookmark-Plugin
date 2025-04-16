@@ -50,7 +50,7 @@ class BMWindow {
 	attachContent(...wc) {
 		const h = this.panel.querySelector(".mnbm-header");
 		const x = h.querySelector(".mnbm-close");
-		const c = this.panel.querySelector("mnbm-container")
+		const c = this.panel.querySelector(".mnbm-container")
 		wc.forEach((v) => {
 			h.append(v.controlPanel);
 			c.append(v.list);
@@ -138,9 +138,10 @@ class Debugger extends BMWContent {
 		const li = tag("li", {
 			className: "mnbm-item",
 			prefixNode: tag("p", { className: "mnbm-prefix", innerText: this.list.childElementCount }),
-			textNode: tag("p", { className: "mnbm-text", innerText: JSON.stringify(log), scrollLeft: 100000 })
+			textNode: tag("p", { className: "mnbm-text", innerText: JSON.stringify(log) })
 		});
 		li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
+		li.textNode.scrollLeft = 100000;
 		this.list.append(li);
 		this.log(logs);
 	}
@@ -609,6 +610,7 @@ class BookmarkPlugin {
 				toggleBMLCommand: "Ctrl-B",
 				sideButton: true
 			};
+			settings.update(false)
 		};
 	}
 
@@ -872,7 +874,7 @@ class BookmarkPlugin {
 		
 		document.head.append(this.#style);
 		
-		this.updateSettings();
+		settings.update();
 		
 		this.notify("Bookmark Ready");
 	}
@@ -1073,9 +1075,10 @@ class BookmarkPlugin {
 				}
 			],
 			cb: (key, value) => {
+				if (!this.plugSettings) return;
 				this.plugSettings[key] = value;
 				settings.update();
-				if (this.plugSettings) this.updateSettings();
+				this.updateSettings();
 			}
 		};
 	}
@@ -1086,13 +1089,13 @@ class BookmarkPlugin {
 if (window.acode) {
 	const bookmarkPlugin = new BookmarkPlugin();
 	acode.setPluginInit(
-	plugin.id,
-	async (baseUrl, $page, { cacheFileUrl, cacheFile }) => {
-		if (!baseUrl.endsWith("/")) baseUrl += "/";
-		bookmarkPlugin.baseUrl = baseUrl;
-		await bookmarkPlugin.init($page, cacheFile, cacheFileUrl);
-	},
-	bookmarkPlugin.settingsObj
+		plugin.id,
+		async (baseUrl, $page, { cacheFileUrl, cacheFile }) => {
+			if (!baseUrl.endsWith("/")) baseUrl += "/";
+			bookmarkPlugin.baseUrl = baseUrl;
+			await bookmarkPlugin.init($page, cacheFile, cacheFileUrl);
+		},
+		bookmarkPlugin.settingsObj
 	);
 	acode.setPluginUnmount(plugin.id, bookmarkPlugin.destroy);
 };
