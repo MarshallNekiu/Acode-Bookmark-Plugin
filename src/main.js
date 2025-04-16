@@ -906,7 +906,7 @@ class BookmarkPlugin {
 		this.#array.forEach((row) => { editorManager.editor.session.addGutterDecoration(row, "mnbm-gutter") });
 	}
 	
-	async saveData(file, array) {
+	async saveData(file, array, overwrite = false) {
 		if (file) {
 			array = array ?? this.#array;
 			if (this.#data.file.has(file.id)) {
@@ -921,6 +921,11 @@ class BookmarkPlugin {
 				this.#data.file.delete(file.id);
 				this.dtManager.removeFile(file.id);
 			};
+			if (overwrite) {
+				this.#array.splice(0, Infinity, ...array);
+				this.#bmManager.makeList(this.#array);
+				this.updateGutter();
+			};
 		};
 		const tree = this.#dtManager.getTree();
 		tree.forEach((v, k) => { tree.set(k, { uri: v, array: this.#data.file.get(k)?.array ?? []/*ERRORCASE*/ }) });
@@ -933,156 +938,149 @@ class BookmarkPlugin {
 		const req = this.#ntfQueue[0];
 		const ntf = tag("p", { className: "mnbm-bookmark", innerText: req[0] });
 		setTimeout(() => {
-			req.unshift();
-			if (req.length > 0): this.#unshiftNtfQueue();
-		}, ntf[1]);
+			this.#ntfQueue.unshift();
+			if (this.#ntfQueue.length > 0): this.#unshiftNtfQueue();
+		}, req[1]);
 	}
 
 	notify(x, t = 1000) {
 		this.#ntfQueue.push([x, t]);
-		if (this.#ntfQueue.length == 1) this.unshiftNtfQueue();
+		if (this.#ntfQueue.length == 1) this.#unshiftNtfQueue();
 	}
 
-  updateSettings() {
-    const self = this;
-    if (this.plugSettings.sideButton) {
-      this.showSB.show();
-    } else {
-      this.showSB.hide();
-    }
+	updateSettings() {
+		const self = this;
+		if (this.plugSettings.sideButton) {
+			this.#showSB?.show();
+		} else {
+			this.#showSB?.hide();
+		};
 
-    editorManager.editor.commands.removeCommand("toggleBookmarkList");
-    if (this.plugSettings.toggleBMLCommand.length > 0) {
-      editorManager.editor.commands.addCommand({
-        name: "toggleBookmarkList",
-        description: "",
-        bindKey: { win: this.plugSettings.toggleBMLCommand },
-        exec: async () => {
-          if (this.bmWindow.visible) {
-            this.bmWindow.hide();
-            this.bmManager.visible = false;
-            this.dtManager.visible = false;
-            this.dtManager.regexManager.visible = false;
-            this.debugManager.visible = false;
-            return;
-          }
-          this.bmWindow.show();
-        }
-      });
-    }
+		editorManager.editor.commands.removeCommand("toggleBookmarkList");
+		if (this.plugSettings.toggleBMLCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+				name: "toggleBookmarkList",
+				description: "",
+				bindKey: { win: this.plugSettings.toggleBMLCommand },
+				exec: async () => {
+					if (this.#bmWindow.visible) {
+						this.#bmWindow.hide();
+						return;
+					};
+					this.#bmWindow.show();
+				}
+			});
+		};
 
-    editorManager.editor.commands.removeCommand("toggleBookmark");
-    if (this.plugSettings.toggleBMCommand.length > 0) {
-      editorManager.editor.commands.addCommand({
-        name: "toggleBookmark",
-        description: "",
-        bindKey: { win: this.plugSettings.toggleBMCommand },
-        exec: () => {
-          const row = editorManager.editor.getSelectionRange().start.row;
-          this.toggleBookmark(row);
-        }
-      });
-    }
+		editorManager.editor.commands.removeCommand("toggleBookmark");
+		if (this.plugSettings.toggleBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+				name: "toggleBookmark",
+				description: "",
+				bindKey: { win: this.plugSettings.toggleBMCommand },
+				exec: () => {
+					const row = editorManager.editor.getSelectionRange().start.row;
+					this.toggleBookmark(row);
+				}
+			});
+		};
 
-    editorManager.editor.commands.removeCommand("nextBookmark");
-    if (this.plugSettings.nextBMCommand.length > 0) {
-      editorManager.editor.commands.addCommand({
-        name: "nextBookmark",
-        description: "",
-        bindKey: { win: this.plugSettings.nextBMCommand },
-        exec: () => {
-          const row = editorManager.editor.getSelectionRange().start.row;
-          for (let i = 0; i < this.array.length; i++) {
-            if (this.array[i] > row) {
-              editorManager.editor.gotoLine(this.array[i] + 1);
-              break;
-            }
-          }
-        }
-      });
-    }
+		editorManager.editor.commands.removeCommand("nextBookmark");
+		if (this.plugSettings.nextBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+				name: "nextBookmark",
+				description: "",
+				bindKey: { win: this.plugSettings.nextBMCommand },
+				exec: () => {
+					const row = editorManager.editor.getSelectionRange().start.row;
+					this.#array.forEach((r) => {
+						if (r > row) {
+							editorManager.editor.gotoLine(r + 1);
+							break;
+						};
+					});
+				}
+			});
+		};
 
-    editorManager.editor.commands.removeCommand("previousBookmark");
-    if (this.plugSettings.prevBMCommand.length > 0) {
-      editorManager.editor.commands.addCommand({
-        name: "previousBookmark",
-        description: "",
-        bindKey: { win: this.plugSettings.prevBMCommand },
-        exec: () => {
-          const row = editorManager.editor.getSelectionRange().start.row;
-          for (let i = this.array.length - 1; i >= 0; i--) {
-            if (this.array[i] < row) {
-              editorManager.editor.gotoLine(this.array[i] + 1);
-              break;
-            }
-          }
-        }
-      });
-    }
-  }
+		editorManager.editor.commands.removeCommand("previousBookmark");
+		if (this.plugSettings.prevBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+				name: "previousBookmark",
+				description: "",
+				bindKey: { win: this.plugSettings.prevBMCommand },
+				exec: () => {
+					const row = editorManager.editor.getSelectionRange().start.row;
+					this.#array.forEach((r) => {
+						if (r < row) {
+							editorManager.editor.gotoLine(r + 1);
+							break;
+						};
+					});
+				}
+			});
+		};
+	}
 
-  get settingsObj() {
-    return {
-      list: [
-        {
-          key: "sideButton",
-          text: "Show SideButton",
-          checkbox: !!this.plugSettings.sideButton,
-          info: ``
-        },
-        {
-          key: "toggleBMLCommand",
-          text: "[Command]: Toggle Bookmark list.",
-          value: this.plugSettings.toggleBMLCommand,
-          prompt: "Command",
-          promptType: "text"
-        },
-        {
-          key: "toggleBMCommand",
-          text: "[Command]: Toggle Bookmark.",
-          value: this.plugSettings.toggleBMCommand,
-          prompt: "Command",
-          promptType: "text"
-        },
-        {
-          key: "prevBMCommand",
-          text: "[Command]: Go to previous Bookmark.",
-          value: this.plugSettings.prevBMCommand,
-          prompt: "Command",
-          promptType: "text"
-        },
-        {
-          key: "nextBMCommand",
-          text: "[Command]: Go to next Bookmark.",
-          value: this.plugSettings.nextBMCommand,
-          prompt: "Command",
-          promptType: "text"
-        }
-      ],
-      cb: (key, value) => {
-      	//alert(k, v);
-        this.plugSettings[key] = value;
-        settings.update();
-        if (this.plugSettings) this.updateSettings();
-      }
-    };
-  }
+	get settingsObj() {
+		return {
+			list: [
+				{
+					key: "sideButton",
+					text: "Show SideButton",
+					checkbox: !!this.plugSettings.sideButton,
+					info: ``
+				},
+				{
+					key: "toggleBMLCommand",
+					text: "[Command]: Toggle Bookmark list.",
+					value: this.plugSettings.toggleBMLCommand,
+					prompt: "Command",
+					promptType: "text"
+				},
+				{
+					key: "toggleBMCommand",
+					text: "[Command]: Toggle Bookmark.",
+					value: this.plugSettings.toggleBMCommand,
+					prompt: "Command",
+					promptType: "text"
+				},
+				{
+					key: "prevBMCommand",
+					text: "[Command]: Go to previous Bookmark.",
+					value: this.plugSettings.prevBMCommand,
+					prompt: "Command",
+					promptType: "text"
+				},
+				{
+					key: "nextBMCommand",
+					text: "[Command]: Go to next Bookmark.",
+					value: this.plugSettings.nextBMCommand,
+					prompt: "Command",
+					promptType: "text"
+				}
+			],
+			cb: (key, value) => {
+				this.plugSettings[key] = value;
+				settings.update();
+				if (this.plugSettings) this.updateSettings();
+			}
+		};
+	}
 
-  get plugSettings() {
-    return settings.value[plugin.id];
-  }
+	get plugSettings() { return settings.value[plugin.id] }
 }
 
 if (window.acode) {
-  const bookmarkPlugin = new BookmarkPlugin();
-  acode.setPluginInit(
-    plugin.id,
-    async (baseUrl, $page, { cacheFileUrl, cacheFile }) => {
-      if (!baseUrl.endsWith("/")) baseUrl += "/";
-      bookmarkPlugin.baseUrl = baseUrl;
-      await bookmarkPlugin.init($page, cacheFile, cacheFileUrl);
-    },
-    bookmarkPlugin.settingsObj
-  );
-  acode.setPluginUnmount(plugin.id, bookmarkPlugin.destroy);
-}
+	const bookmarkPlugin = new BookmarkPlugin();
+	acode.setPluginInit(
+	plugin.id,
+	async (baseUrl, $page, { cacheFileUrl, cacheFile }) => {
+		if (!baseUrl.endsWith("/")) baseUrl += "/";
+		bookmarkPlugin.baseUrl = baseUrl;
+		await bookmarkPlugin.init($page, cacheFile, cacheFileUrl);
+	},
+	bookmarkPlugin.settingsObj
+	);
+	acode.setPluginUnmount(plugin.id, bookmarkPlugin.destroy);
+};
