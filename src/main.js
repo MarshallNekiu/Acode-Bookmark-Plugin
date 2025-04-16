@@ -11,7 +11,7 @@ class BMWindow {
 	static #signalShow = new Event("show");
 	static #signalHide = new Event("hide");
 	
-	visible = false;
+	//visible = false;
 	
 	#panel = tag("section", { className: "mnbm-window" });
 	#content = null;
@@ -51,7 +51,7 @@ class BMWindow {
 		const h = this.panel.querySelector(".mnbm-header");
 		const x = h.querySelector(".mnbm-close");
 		const c = this.panel.querySelector("mnbm-container")
-		wc.forEach((v) {
+		wc.forEach((v) => {
 			h.append(v.controlPanel);
 			c.append(v.list);
 		})
@@ -88,7 +88,7 @@ class BMWindow {
 }
 
 class BMWContent {
-	visible = false;
+	//visible = false;
 	
 	#controlPanel = tag("div", { className: "mnbm-control-panel" });
 	#list = tag("ul", { className: "mnbm-list" });
@@ -195,7 +195,7 @@ class BookmarkManager extends BMWContent {
 	#newItem(row) {
 		const li = tag("li", {
 			className: "mnbm-item",
-			prefixNode: tag("p", { className: "mnbm-prefix" dataset: { action: "select" }, innerText: (row ?? 0) + 1 }),
+			prefixNode: tag("p", { className: "mnbm-prefix", dataset: { action: "select" }, innerText: (row ?? 0) + 1 }),
 			textNode: tag("p", { className: "mnbm-text", dataset: { action: "select" }, innerText: editorManager.activeFile.session.getLine(row ?? 0) })
 		});
 		li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
@@ -231,6 +231,16 @@ class BookmarkManager extends BMWContent {
 	editList(array) {
 		const chn = this.list.children;
 		for (let i = 0; i < array.length; i++) { this.#setItemRow(chn.item(i), array[i]) }
+		this.align();
+	}
+	
+	align() {
+		const w = this.list.lastElementChild?.prefixNode.offsetWidth;
+		let e = this.list.firstElementChild;
+		while (e) {
+			e.prefixNode.style.width = w + "px";
+			e = e.nextElementSibling;
+		}
 	}
 }
    
@@ -289,7 +299,7 @@ class RegexManager extends BMWContent {
 	
 	format(x) {
 		this.list.children.forEach((e) => {
-			if (e.disabled) continue;
+			if (e.disabled) return;
 			const r = new RegExp(e.regexNode.value);
 			if (x.search(r) > -1/*r.test(x)*/) x = x.split(e.sliceNode.value).pop();
 		});
@@ -382,19 +392,19 @@ class DataManager extends BMWContent{
 		const files = this.list.querySelectorAll(".mnbm-file");
 		if (this.#focus) this.#focus.style.background = this.#focus.invalid ? "#c8141433" : "#ffffff66";
 		this.#focus = null;
-		files.forEach((e) => {
-			if (e.id == id) {
-				this.#focus = e;
+		for (let i = 0; i < files.length; i++) {
+			if (files[i].id == id) {
+				this.#focus = files[i];
 				const focused = this.#focus.id == editorManager.activeFile.id;
 				if (focused) this.#focus.style.background = "#c8c8ff66";
 				return;
 			};
-		});
+		};
 	}
 	
 	#getFile(id) {
 		const files = this.list.querySelectorAll(".mnbm-file");
-		files.forEach((e) => { if (e.id == id) return e });
+		for (let i = 0; i < files.length; i++) { if (files[i].id == id) return files[i] };
 		return null;
 	}
 	
@@ -462,8 +472,8 @@ class DataManager extends BMWContent{
 		return folder;
 	}
 	
-	sortFolder(...folders) {
-		const folder = folders.shift();
+	sortFolder(...queue) {
+		const folder = queue.shift();
 		if (!folder) return;
 		const children = folder.children;
 		const folders = [];
@@ -471,14 +481,14 @@ class DataManager extends BMWContent{
 		children.forEach((e) => {
 			if (e.className == "mnbm-folder") {
 				folders.push(e);
-				continue;
+				return;
 			};
 			files.push(e);
 		});
 		folders.sort((a, b) => a.path.localeCompare(b.path));
 		files.sort((a, b) => a.textNode.innerText.localeCompare(b.textNode.innerText));
 		folder.append(...files, ...folders);
-		this.sortFolder(folders);
+		this.sortFolder(queue);
 	}
 	
 	filePath(file) {
@@ -639,7 +649,7 @@ class BookmarkPlugin {
 			backgroundColor: "#3e4dc4",
 			textColor: "#000"
 		});
-		this.#showB.show();
+		this.#showSB.show();
 		
 		const debugSB = SideButton({
 			text: "debug",
@@ -847,6 +857,8 @@ class BookmarkPlugin {
 			if (bmWindow.visible && bmManager.visible) bmManager.writeList(this.#array);
 		});
 		
+		bmWindow.attachContent(bmManager, dtManager, dtManager.regexManager, debugManager);
+		
 		bmManager.makeList(this.#array);
 		this.updateGutter();
 		
@@ -880,10 +892,10 @@ class BookmarkPlugin {
 
 	addBookmark(row) {
 		let idx = -1;
-		this.#array.forEach((r) => {
-			if (r > row) break;
+		for (let i = 0; i < this.#array.length; i++) {
+			if (this.#array[i] > row) break;
 			idx += 1;
-		});
+		};
 		if (idx < 0 || this.#array[idx] == row) return;
 		this.#array.splice(idx, 0, row);
 		this.bmManager.addRow(row, idx);
@@ -939,7 +951,7 @@ class BookmarkPlugin {
 		const ntf = tag("p", { className: "mnbm-bookmark", innerText: req[0] });
 		setTimeout(() => {
 			this.#ntfQueue.unshift();
-			if (this.#ntfQueue.length > 0): this.#unshiftNtfQueue();
+			if (this.#ntfQueue.length > 0) this.#unshiftNtfQueue();
 		}, req[1]);
 	}
 
@@ -993,12 +1005,12 @@ class BookmarkPlugin {
 				bindKey: { win: this.plugSettings.nextBMCommand },
 				exec: () => {
 					const row = editorManager.editor.getSelectionRange().start.row;
-					this.#array.forEach((r) => {
-						if (r > row) {
-							editorManager.editor.gotoLine(r + 1);
+					for (let i = 0; i < this.#array.length; i++) {
+						if (this.#array[i] > row) {
+							editorManager.editor.gotoLine(this.#array[i] + 1);
 							break;
 						};
-					});
+					};
 				}
 			});
 		};
@@ -1011,12 +1023,12 @@ class BookmarkPlugin {
 				bindKey: { win: this.plugSettings.prevBMCommand },
 				exec: () => {
 					const row = editorManager.editor.getSelectionRange().start.row;
-					this.#array.forEach((r) => {
-						if (r < row) {
-							editorManager.editor.gotoLine(r + 1);
+					for (let i = 0; i < this.#array.length; i++) {
+						if (this.#array[i] < row) {
+							editorManager.editor.gotoLine(this.#array[i] + 1);
 							break;
 						};
-					});
+					};
 				}
 			});
 		};
