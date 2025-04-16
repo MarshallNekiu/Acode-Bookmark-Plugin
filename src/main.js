@@ -891,186 +891,42 @@ class BookmarkPlugin {
   
 	toggleBookmark(row) {
 		const idx = this.#array.indexOf(row);
-		if (idx >= 0) {
+		if (idx > -1) {
 			this.#array.splice(idx, 1);
 			this.#bmManager.removeRow(idx);
 			editorManager.editor.session.removeGutterDecoration(row, "mnbm-gutter");
-		} else {
-			this.addBookmark(row);
-			editorManager.editor.session.addGutterDecoration(row, "mnbm-gutter");
-		}
+			return;
+		};
+		this.addBookmark(row);
+		editorManager.editor.session.addGutterDecoration(row, "mnbm-gutter");
 	}
 	
-  updateGutter() {
-    for (let i = 0; i < editorManager.editor.session.getLength(); i++) {
-      editorManager.editor.session.removeGutterDecoration(i, "mnbm-gutter");
-    }
-    for (let i = 0; i < this.array.length; i++) {
-      editorManager.editor.session.addGutterDecoration(this.array[i], "mnbm-gutter");
-    }
-  }
-  
-  getUnformattedData(map) {
-  	
-  }
-  
-  async formatData(ufData, checkFiles = false) {
-  	const baseArr = [];
-  	const newArr = [];
-  	
-  	this.data.file.forEach((v, k) => {
-  		const uri = v.uri;
-  		if (uri[0] == -1) {
-  			newArr.push([...uri, k]);
-  		} else {
-  			baseArr.push([...uri, k]);
-  		};
-  	});
-  	
-  	this.debugManager.list.innerHTML = "";
-  	
-  	//this.debugManager.log("Base")
-  	for (let i = 0; i < baseArr.length; i++) {
-  		//this.debugManager.log(baseArr[i]);
-  	}
-  	//this.debugManager.log("New");
-  	for (let i = 0; i < newArr.length; i++) {
-  		//this.debugManager.log(newArr[i]);
-  	}
-  	
-  	const pathArr = [];
-  	
-  	for (let i = 0; i < baseArr.length; i++) {
-  		if (baseArr[i][0] == i) continue;
-  		let newPath = baseArr[i][1];
-  		let k = baseArr[i][0];
-  		
-  		for (let j = i - 1; j >= 0; j--) {
-  			if (j != k) continue;
-  			k = baseArr[j][0];
-  			newPath = baseArr[j][1] + newPath;
-  			if (j == k) break;
-  		}
-  		pathArr.push([i, newPath]);
-  	}
-  	for (let i = 0; i < pathArr.length; i++) {
-  		baseArr[pathArr[i][0]][1] = pathArr[i][1]
-  	}
-  	for (let i = 0; i < newArr.length; i++) {
-  		baseArr.push(newArr[i]);
-  	}
-  	
-  	baseArr.sort((a, b) => a[2].localeCompare(b[2]));
-  	baseArr.sort((a, b) => a[1].localeCompare(b[1]));
-  	
-  	//this.debugManager.log("BaseOrg");
-  	
-  	for (let i = 0; i < baseArr.length; i++) {
-  		//this.debugManager.log(baseArr[i]);
-  	}
-  	
-  	const formArr = [];
-  	const commonSubstring = (str1, str2) => {
-	    let res = '';
-	    for (let i = 0; i < str1.length; i++) {
-	        if (!str2.startsWith(res + str1[i])) {
-	            break;
-	        }
-	        res += str1[i];
-	    }
-	    return res;
+	updateGutter() {
+		for (let i = 0; i < editorManager.editor.session.getLength(); i++) { editorManager.editor.session.removeGutterDecoration(i, "mnbm-gutter") }
+		this.#array.forEach((row) => { editorManager.editor.session.addGutterDecoration(row, "mnbm-gutter") });
+	}
+	
+	async saveData(file, array) {
+		if (file) {
+			array = array ?? this.#array;
+			if (this.#data.file.has(file.id)) {
+				this.#data.file.set(file.id, { uri: this.#data.file.get(file.id).uri, array: [...array] });
+			} else {
+				this.#dtManager.addFile(file.id, file.location, file.filename);
+				const tree = this.#dtManager.getTree();
+				tree.forEach((v, k) => { this.#data.file.set(k, { uri: v, array: this.#data.file.get(k)?.array ?? []/*ERRORCASE*/ }) });
+				this.#data.file.get(file.id).array = [...array];
+			};
+			if (array.length == 0) {
+				this.#data.file.delete(file.id);
+				this.dtManager.removeFile(file.id);
+			};
 		};
-		const longestCommonSubstring = (str1, str2) => {
-	    for (let i = str1.length; i > 0; i--) {
-        if (str1.slice(0, i) == str2) return str2;
-	    }
-	    return null;
-		};
-		const commonArr = [];
-		
-		for (let i = 0; i < baseArr.length; i++) {
-			for (let j = 0; j < baseArr.length; j++) {
-				const cs = longestCommonSubstring(baseArr[i][1], baseArr[j][1]) ?? "";
-				if (!commonArr.includes(cs)) commonArr.push(cs);
-			}
-		}
-		
-		commonArr.sort();
-		//this.debugManager.log("Common: " + commonArr.length);
-		for (let i = 0; i < commonArr.length; i++) {
-			//this.debugManager.log(commonArr[i]);
-		}
-		
-		for (let i = 0; i < baseArr.length; i++) {
-			let x = true;
-			
-			for (let j = i - 1; j >= 0; j--) {
-				if (baseArr[i][1].startsWith(baseArr[j][1])) {
-					formArr.push([j, baseArr[i][1].slice(baseArr[j][1].length), baseArr[i][2], baseArr[i][3], formArr[j][4] + (formArr[j][1] == "" ? "" : "----")]);
-					x = false;
-					break;
-				}
-			}
-			if (x) formArr.push([i, baseArr[i][1], baseArr[i][2], baseArr[i][3], ""]);
-		}
-		
-		this.debugManager.log("Format");
-		
-		const newFile = new Map();
-  	
-  	for (let i = 0; i < formArr.length; i++) {
-  		newFile.set(formArr[i][3], { uri: formArr[i].slice(0, 3), arr: this.data.file.get(formArr[i][3]).array });
-  		//this.data.file[formArr[i][3]].uri = formArr[i].slice(0, 3);
-  		if (formArr[i][1] != "") {
-  			this.debugManager.log(/*i + "||" + formArr[i][0] + "||" +*/ formArr[i][4] + formArr[i][1]);
-  			this.debugManager.log(/*i + "||" + formArr[i][0] + "||" +*/ formArr[i][4] +"----" + formArr[i][2]);
-  			continue;
-  		}
-  		this.debugManager.log(/*i + "||" + formArr[i][0] + "||" +*/ formArr[i][4] + formArr[i][2]);
-  	}
-  	
-  	//this.debugManager.log("newFile");
-  	
-  	newFile.forEach((v, k) => {
-  		//this.debugManager.log(v.uri);
-  	});
-  	
-  	this.debugManager.align();
-  	this.data.file = newFile;
-  }
-  
-  async removeData(id) {
-  	//remap uri
-  	//delete
-  	//save
-  }
-  
-  setData(id, arr, loc, fn) {
-  	this.data.file.set(id, { uri: this.data.file.get(id)?.uri ?? [-1, loc, fn], array: [...arr] });
-    if (arr.length == 0) delete this.data.file[id];
-  }
-
-  async saveData(file, array) {
-  	if (file) {
-  		array = array ?? this.array;
-		if (this.data.file.has(file.id)) {
-			this.data.file.set(file.id, { uri: this.data.file.get(file.id).uri, array: [...array] });
-		} else {
-			dtManager.addFile(file.id, file.location, file.filename);
-			const tree = dtManager.getTree();
-			tree.forEach((v, k) => { this.data.file.set(k, { uri: v, array: this.data.file.get(k)?.array ?? [] /*ERRORCASE*/}) });
-			this.data.file.get(file.id).array = [...array];
-		};
-		if (array.length == 0) {
-			this.data.file.delete(file.id);
-			dtManager.removeFile(file.id);
-		};
-  	};
-  	const tree = this.dtManager.getTree();
-  	tree.forEach((v, k) => { tree.set(k, { uri: v, array: this.data.file.get(k)?.array ?? [] }) });
-  	this.data.file = tree;
-    await this.fsData.writeFile(JSON.stringify({ plugin: this.data.plugin, file: Array.from(tree), regex: this.data.regex }));
-  }
+		const tree = this.#dtManager.getTree();
+		tree.forEach((v, k) => { tree.set(k, { uri: v, array: this.#data.file.get(k)?.array ?? []/*ERRORCASE*/ }) });
+		this.#data.file = tree;
+		await this.#fsData.writeFile(JSON.stringify({ plugin: this.#data.plugin, file: Array.from(tree), regex: this.#data.regex }));
+	}
   
 	#unshiftNtfQueue() {
 		if (this.#ntfQueue.length == 0) return; // ERRORCASE
