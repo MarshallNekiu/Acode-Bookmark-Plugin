@@ -218,7 +218,7 @@ class BookmarkManager extends BMWContent {
 		itm.textNode.innerText = editorManager.activeFile.session.getLine(row);
 	}
 	
-	removeItem(idx) { this.list.children.item(idx).remove() }
+	removeRow(idx) { this.list.children.item(idx).remove() }
 	
 	makeList(array) {
 		const newList = [];
@@ -656,7 +656,7 @@ class BookmarkPlugin {
 		//EVENTS
 		editorManager.editor.on("gutterclick", (e) => {
 			const row = e.getDocumentPosition().row;
-			this.toggleLine(row);
+			this.toggleBookmark(row);
 		});
 		
 		//bmWindow.panel.addEventListener("hide", () => {});
@@ -674,7 +674,7 @@ class BookmarkPlugin {
 			switch (target.dataset.action) {
 				case "toggle":
 					const row = editorManager.editor.getSelectionRange().start.row;
-					this.toggleLine(row);
+					this.toggleBookmark(row);
 					return;
 				case "save":
 					await this.saveData(this.#file, this.#array);
@@ -700,7 +700,7 @@ class BookmarkPlugin {
 				case "erase":
 					const idx = this.#array.indexOf(e.details.row);
 					this.#array.splice(idx, 1);
-					bmManager.removeItem(idx);
+					bmManager.removeRow(idx);
 					editorManager.editor.session.removeGutterDecoration(e.details.row, "mnbm-gutter");
 					return;
 			}
@@ -879,34 +879,28 @@ class BookmarkPlugin {
 	}
 
 	addBookmark(row) {
-		const newArray = [];
+		let idx = -1;
 		this.#array.forEach((r) => {
-			if (r >= row) break;
-			newArray.push(r);
+			if (r > row) break;
+			idx += 1;
 		});
-		if (newArray.length == 0) return;
-		this.#array.splice(0, newArray.length, ...newArray, row);
-		this.bmManager.addRow(row, newArray.length - 1);
+		if (idx < 0 || this.#array[idx] == row) return;
+		this.#array.splice(idx, 0, row);
+		this.bmManager.addRow(row, idx);
 	}
   
-  toggleLine(ln) {
-  	const idx = this.array.indexOf(ln);
-  	if (idx >= 0) {
-      this.array = this.array.slice(0, idx).concat(this.array.slice(idx + 1));
-      this.bmManager.removeItem(idx);
-      editorManager.editor.session.removeGutterDecoration(ln, "mnbm-gutter");
-    } else {
-      this.addBookmark(ln);
-      editorManager.editor.session.addGutterDecoration(ln, "mnbm-gutter");
-    }
-  }
-  /*
-  indent(e) {}
-
-  dedent(e) {}
-
-  movedent(e) {}
-  */
+	toggleBookmark(row) {
+		const idx = this.#array.indexOf(row);
+		if (idx >= 0) {
+			this.#array.splice(idx, 1);
+			this.#bmManager.removeRow(idx);
+			editorManager.editor.session.removeGutterDecoration(row, "mnbm-gutter");
+		} else {
+			this.addBookmark(row);
+			editorManager.editor.session.addGutterDecoration(row, "mnbm-gutter");
+		}
+	}
+	
   updateGutter() {
     for (let i = 0; i < editorManager.editor.session.getLength(); i++) {
       editorManager.editor.session.removeGutterDecoration(i, "mnbm-gutter");
@@ -1129,7 +1123,7 @@ class BookmarkPlugin {
         bindKey: { win: this.plugSettings.toggleBMCommand },
         exec: () => {
           const row = editorManager.editor.getSelectionRange().start.row;
-          this.toggleLine(row);
+          this.toggleBookmark(row);
         }
       });
     }
