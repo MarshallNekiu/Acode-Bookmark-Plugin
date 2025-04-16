@@ -927,8 +927,14 @@
 		
 		static #getPriv() { return "priv" }
 		
+		//vv = false;
+		
+		set vv(x) { 0 }
+		
 		constructor() {
 			super();
+			//this.vv = true;
+			debug(this.vv, "vvvv");
 			//this.tst();
 			//debug(this.scp);
 			//this.scp.x = "scp2";
@@ -978,6 +984,12 @@
 	debug("v", test.v);
 	test.v = true;
 	debug(test.v);
+	dt.list.firstElementChild.firstElementChild.append(tag("p", {
+		className: "mnbm-text",
+		innerText: "aaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaaaaf",
+		scrollLeft: 100000
+	}));
+	//dt.list.firstElementChild.firstElementChild.lastElementChild.scrollLeft = 100000;
 	
 	
 </script>

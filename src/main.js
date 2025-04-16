@@ -11,25 +11,22 @@ class BMWindow {
 	static #signalShow = new Event("show");
 	static #signalHide = new Event("hide");
 	
-	//visible = false;
-	
 	#panel = tag("section", { className: "mnbm-window" });
 	#content = null;
 	
 	constructor () {
 		this.panel.innerHTML = `
 			<div class="mnbm-content">
-				<div class="mnbm-header">
-					<div class="mnbm-drag"> </div>
+				<header class="mnbm-header">
+					<span class="mnbm-drag"> </span>
 					<button class="mnbm-close"> X </button>
-				</div>
-				<div class="mnbm-body">
+				</header>
+				<article class="mnbm-body">
 					<div class="mnbm-container"> </div>
-				</div>
+				</article>
 			</div>
 			<div class="mnbm-bg"> </div>
 		`;
-		
 		this.panel.querySelector(".mnbm-drag").addEventListener("touchmove", async (e) => this.#onTouchMoved(e));
 		this.panel.querySelector(".mnbm-bg").addEventListener("touchmove", async (e) => this.#onTouchMoved(e));
 		this.panel.querySelector(".mnbm-close").addEventListener("click", (e) => this.hide());
@@ -37,14 +34,12 @@ class BMWindow {
 	
 	show() {
 		this.visible = true;
-		//if (this.#content) this.#content.visible = true;
-		this.panel.dispatchEvent(BMWindow.signalShow);
+		this.panel.dispatchEvent(BMWindow.#signalShow);
 	}
 	
 	hide() {
 		this.visible = false;
-		//if (this.#content) this.#content.visible = false;
-		this.panel.dispatchEvent(BMWindow.signalHide);
+		this.panel.dispatchEvent(BMWindow.#signalHide);
 	}
 	
 	attachContent(...wc) {
@@ -54,6 +49,7 @@ class BMWindow {
 		wc.forEach((v) => {
 			h.append(v.controlPanel);
 			c.append(v.list);
+			v.visible = false;
 		})
 		h.append(x);
 	}
@@ -75,32 +71,32 @@ class BMWindow {
 	
 	get panel() { return this.#panel }
 	
-	get visible() { return this.panel.isConnected() }
+	get visible() { return this.panel.isConnected }
 	
 	set visible(x) {
 		if (x && !this.visible) {
 			document.body.append(this.panel);
-		} else if (!x && this.visible) {
-			this.panel.remove();
+			return;
 		};
-		if (this.#content) this.#content.visible = x;
+		if (!x && this.visible) this.panel.remove();
 	}
 }
 
 class BMWContent {
-	//visible = false;
-	
-	#controlPanel = tag("div", { className: "mnbm-control-panel" });
+	#controlPanel = tag("span", { className: "mnbm-control-panel" });
 	#list = tag("ul", { className: "mnbm-list" });
+	#visible = false;
 	
 	get controlPanel() { return this.#controlPanel }
 	
 	get list() { return this.#list }
 	
+	get visible() { return this.#visible }
+	
 	set visible(x) {
-		this.controlPanel.style.visibility = x ? "visible" : "hidden";
-		this.list.style.visibility = x ? "visible" : "hidden";
-		this.visible = x;
+		this.controlPanel.style.display = x ? "flex" : "none";
+		this.list.style.display = x ? "list-item" : "none";
+		this.#visible = x;
 	}
 }
 
@@ -116,7 +112,6 @@ class Debugger extends BMWContent {
 			<button class="mnbm-debug-tree" data-action="tree"> Tree </button>
 			<button class="mnbm-debug-clear" data-action="clear"> Clear </button>
 		`;
-		
 		this.list.addEventListener("click", (e) => {
 			const target = e.target.closest("[data-action]");
 			if (!target) return;
@@ -130,20 +125,17 @@ class Debugger extends BMWContent {
 	}
 	
 	log(...logs) {
-		const log = logs.shift();
-		if (!log) {
-			this.align();
-			return;
-		};
-		const li = tag("li", {
-			className: "mnbm-item",
-			prefixNode: tag("p", { className: "mnbm-prefix", innerText: this.list.childElementCount }),
-			textNode: tag("p", { className: "mnbm-text", innerText: JSON.stringify(log) })
+		logs.forEach((log) => {
+			const li = tag("li", {
+				className: "mnbm-item",
+				prefixNode: tag("p", { className: "mnbm-prefix", innerText: this.list.childElementCount }),
+				textNode: tag("p", { className: "mnbm-text", innerText: JSON.stringify(log) })
+			});
+			li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
+			li.textNode.scrollLeft = 100000;
+			this.list.append(li);
 		});
-		li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
-		li.textNode.scrollLeft = 100000;
-		this.list.append(li);
-		this.log(logs);
+		this.align();
 	}
 	
 	unLog(itm) {
@@ -159,6 +151,8 @@ class Debugger extends BMWContent {
 	}
 	
 	align() {
+		if (this.list.childElementCount == 0) return;
+		this.list.lastElementChild.prefixNode.style.width = "auto";
 		const w = this.list.lastElementChild?.prefixNode.offsetWidth;
 		let e = this.list.firstElementChild;
 		while (e) {
@@ -206,7 +200,8 @@ class BookmarkManager extends BMWContent {
 	addRow(row, to) {
 		const idx = this.list.childElementCount;
 		this.list.append(this.#newItem(row));
-		if (to != idx) this.#moveItem(idx, to); 
+		if (to != idx) this.#moveItem(idx, to);
+		if (this.visible) this.align();
 	}
 	
 	#moveItem(bgn, fnsh) {
@@ -223,8 +218,8 @@ class BookmarkManager extends BMWContent {
 	
 	makeList(array) {
 		const newList = [];
-		this.list.innerHTML = ""
 		array.forEach((i) => { newList.push(this.#newItem()) });
+		this.list.innerHTML = ""
 		this.list.append(...newList);
 		if (this.visible) this.editList(array);
 	}
@@ -236,7 +231,9 @@ class BookmarkManager extends BMWContent {
 	}
 	
 	align() {
-		const w = this.list.lastElementChild?.prefixNode.offsetWidth;
+		if (this.list.childElementCount == 0) return;
+		this.list.lastElementChild.prefixNode.style.width = "auto";
+		const w = this.list.lastElementChild.prefixNode.offsetWidth;
 		let e = this.list.firstElementChild;
 		while (e) {
 			e.prefixNode.style.width = w + "px";
