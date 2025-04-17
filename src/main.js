@@ -502,7 +502,9 @@ class DataManager extends BMWContent{
 		for (let i = 0; i < folders.length; i++) {
 			const root = folders[i].parentElement.className == "mnbm-folder" ? Array.prototype.indexOf.call(folders, folders[i].parentElement) : i;
 			paths.push([root, folders[i].path]);
-			for (let e of folders[i].children) { if (e.className == "mnbm-file") files.push([e.id, [paths[i][0], e.textNode.innerText]]) }
+			for (let e of folders[i].children) {
+				if (e.className == "mnbm-file") files.push([e.id, [i, e.textNode.innerText]])
+			}
 		}
 		if (uri) {
 			const arr = [];
