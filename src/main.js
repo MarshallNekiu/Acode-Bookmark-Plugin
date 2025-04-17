@@ -323,6 +323,7 @@ class DataManager extends BMWContent{
 	}
 	
 	addFile(id, loc, fn) {
+		loc = decodeURIComponent(loc);
 		const arrLoc = this.pathSplit(loc);
 		const folder = this.#getFolder(this.list, arrLoc, 0, true);
 		const file = this.#newFile(id, fn);

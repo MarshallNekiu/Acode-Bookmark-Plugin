@@ -175,6 +175,10 @@
 					.mnbm-folder {
 						color: black;
 						border: 1px solid black;
+						overflow-x: scroll;
+						text-wrap: nowrap;
+						
+						//width: 100%;
 						
 						//margin-left: 2%;
 						background:rgba(255, 255, 200, 0.1);
