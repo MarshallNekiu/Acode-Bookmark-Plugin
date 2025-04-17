@@ -314,9 +314,9 @@ class DataManager extends BMWContent{
 	
 	constructor () {
 		super();
+		// <button class="mnbm-check-files" data-action="check-files"> (...) </button>
 		this.controlPanel.innerHTML = `
 			<button class="mnbm-back" data-action="back"> ≪ </button>
-			<button class="mnbm-check-files" data-action="check-files"> (...) </button>
 			<button class="mnbm-regex-visible" data-action="regex-visible"> (.*) </button>
 		`;
 		this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.controlPanel.dispatchEvent(DataManager.#signalToggle) });
@@ -543,22 +543,15 @@ class DataManager extends BMWContent{
 		queue.forEach((q) => { this.addFile(...q) });
 	}
 	
-	checkFiles() {
-		this.getTree();
-		//const t = this.getTree(true);
-		/*
-		const tree = new Map(this.getTree(true));
-		alert("tree", Array.from(tree).toString());
-		const aF = editorManager.files;
-		alert("af", aF.toString());
-		for (let i = 0; i < aF.length; i++) {
-			if (!tree.has(aF[i].id)) continue;
-			this.removeFile(this.getFile(aF[i].id));
-			this.addFile(aF[i].id, aF[i].location, aF[i].filename);
+	/*
+	async checkFiles() { // MAYBE LATER, WHEN CAN MANAGE ENCODE/DECODE URI
+		const tree = this.getTree(true);
+		for (let x of tree[2]) {
+			const check = await fs(x[1][0] + x[1][1]).exists();
+			debugManager.log("checked: " + x[1][0] + x[1][1] + " = " + (check ?? "null"));
 		}
-		const tree2 = new Map(this.getTree(true));
-		*/
 	}
+	*/
 	
 	applyRegex() {
 		const folders = this.list.querySelectorAll(".mnbm-folder");
@@ -706,9 +699,11 @@ class BookmarkPlugin {
 					bmWindow.setContent(bmManager);
 					bmManager.editList(this.#array);
 					return;
+				/*
 				case "check-files":
 					dtManager.checkFiles();
 					return;
+				*/
 			}
 		});
 		
