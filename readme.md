@@ -4,19 +4,17 @@ A simple plugin to navigate through text.
 
 ## Behavior
 
-- **Ready**: Initialize the plugin.*(Until better option this is manual)*
 - **Show**: Show the *Bookmark List*.
-	- **Toggle**: Toggle the Bookmark for the row.
-	- **Save**: Save the *Bookmark list* for the current file.*(Auto)*
-	- **Load**: Load the *Bookmark list* for the current file.*(Auto)*
-	- **File**: Show the *Files* with a *Bookmark List*.
+ 	- **Toggle**: Toggle the Bookmark for the row.
+ 	- **Save**: Save the *Bookmark list* for the current file.*(Auto)*
+ 	- **Load**: Load the *Bookmark list* for the current file.*(Auto)*
+ 	- **File**: Show the *Files* with a *Bookmark List*.
+ 		- **Check**: Check path.
+ 		- **Regex**: Slice path.(UI)
 
 ## Version Note
 
-- **Plugin Settings**
-	- **Keyboard shortcut**
-- **Fancy UI**
-- **DragEvent**
+- **Thousand lines of changes.**
 
 ## Releases
 
@@ -26,3 +24,4 @@ A simple plugin to navigate through text.
 - **v1.1.9**: [Bookmark Automaton.dev](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.1.9).
 - **v1.2.0**: [Bookmark Accessible.SASS](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.2.0).
 - **v1.2.1**: [Bookmark Accessible.SASS.drag](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.2.1).
+- **v1.2.3**: [Bookmark Accessible.ready](https://github.com/MarshallNekiu/Acode-Bookmark-Plugin/releases/tag/v1.2.3).

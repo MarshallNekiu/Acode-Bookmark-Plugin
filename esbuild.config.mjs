@@ -38,6 +38,7 @@ let buildConfig = {
   	zipPlugin,
   	sassPlugin({
       type: 'css-text',
+      /*
       async transform(source) {
         const svgRegex = /url\(['"]?([^'"\)]+\.svg)['"]?\)/g;
         let transformedSource = source;
@@ -55,6 +56,7 @@ let buildConfig = {
         }
         return transformedSource;
       },
+      */
     }),
   	sassPlugin(
   		{
