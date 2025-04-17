@@ -795,15 +795,13 @@ class BookmarkPlugin {
 			this.notify("Bookmark switched");
 		});
 		
-		//settings.on("update", this.#onSettingsUpdated);
-		
 		bmWindow.attachContent(bmManager, dtManager, dtManager.regexManager, debugManager);
 		
 		data.regex.forEach((req) => { dtManager.regexManager.addRegex(req[0], req[1]) });
 		
 		document.head.append(this.#style);
 		
-		settings.update();
+		this.#onSettingsUpdated();
 		this.notify("ready");
 	}
 
@@ -955,52 +953,3 @@ if (window.acode) {
 	);
 	acode.setPluginUnmount(plugin.id, bookmarkPlugin.destroy);
 };
-
-/*
-async init() {
-  	const st = tag("style", { type: "text/css", innerHTML: styles });
-  	document.head.append(st);
-  	this.#bmWindow.show();
-  	setTimeout(() => {
-  		this.#bmWindow.attachContent(debugManager, this.#bmManager, this.#dtManager, this.#dtManager.regexManager);
-  		this.#bmWindow.setContent(debugManager);
-  		debugManager.log(...Array(100).fill("log"));
-  	}, 500);
-  	setTimeout(() => {
-  		this.#bmWindow.setContent(this.#bmManager);
-  		setTimeout(() => {
-	  		for (let i = 0; i <= 100; i++) {
-	  			setTimeout(() => {
-	  				this.#bmManager.addRow(i * 16, i);
-	  			}, i * 1);
-	  		}
-  		}, 500);
-  	}, 1000);
-  	setTimeout(() => {
-  		this.#bmWindow.setContent(this.#dtManager)
-  		const arr = [];
-  		arr.push(["id0", "path0/path0/", "nameless"]);
-	    arr.push(["id1", "path0/path0/path0/", "nameless1"]);
-	    arr.push(["id2", "path0/path0/path0/", "nameless2"]);
-	    arr.push(["id3", "path0/path1/", "nameless3"]);
-	   	arr.push(["id4", "path0/path1/path0/path1/", "nameless4"]);
-	   	arr.push(["id5", "path0/path1/path0/path1/", "nameless5"]);
-	   	arr.push(["id6", "path0/path0/", "nameless6"]);
-	   	arr.push(["id7", "path0/", "nameless7"]);
-	   	for (let i = 1; i <= arr.length; i++) {
-	   		setTimeout(() => {
-	   			this.#dtManager.addFile(...arr[i - 1]);
-	   			//alert("t", [...this.#dtManager.getTree(true), "=>", ...this.#dtManager.getTree()].map((e) => { return JSON.stringify(e) + "<br>" }));
-	   		}, i * 1000);
-	   	}
-  		//alert("rgx", this.#regexManager.format);
-  		//this.#regexManager.addRegex("origin", "::");
-  		//this.#regexManager.addRegex("path1", "://");
-  		setTimeout(() => {
-  			//alert("rgx0");
-  			//const f = this.#regexManager.format("origin::path0/path1://path0/path1");
-  			//alert("rgx2", f ?? "null");
-  		}, 5000);
-  	}, 2500);
-  }
-  */
