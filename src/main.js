@@ -404,6 +404,19 @@ class DataManager extends BMWContent{
 	
 	hasFile(id) { return !!this.#getFile(id) }
 	
+	hasPath(loc, fn) {
+		loc = decodeURIComponent(loc);
+		const tree = this.getTree(true);
+		
+		for (let e in tree[2]) {
+			if (e[1][0] == loc) {
+				if (fn && fn != e[1][1]) continue;
+				return true;
+			};
+		}
+		return false;
+	}
+	
 	#getFolder(fromFolder, arrLoc, idxLoc, create = false) {
 		let folder = fromFolder.firstElementChild;
 		
@@ -524,7 +537,7 @@ class DataManager extends BMWContent{
 	}
 		
 	setTree(tree) {
-		const [map, queue] = [Array.from(tree), []];
+		const [paths, files] = [Array.from(tree[0]), Array.from(tree[1])];
 		
 		for (let i = 0; i < map.length; i++) {
 			if (map[i][1][0] == i) {
@@ -544,6 +557,7 @@ class DataManager extends BMWContent{
 	}
 	
 	/*
+	// SEE ACODE.URL, ACODE.ENCODINGS, FILELIST.JS, OPENFOLDER.JS
 	async checkFiles() { // MAYBE LATER, WHEN CAN MANAGE ENCODE/DECODE URI
 		const tree = this.getTree(true);
 		for (let x of tree[2]) {
@@ -658,7 +672,7 @@ class BookmarkPlugin {
 					this.toggleBookmark(row);
 					return;
 				case "save":
-					//await this.saveData(this.#file, this.#array);
+					await this.saveData(this.#file, this.#array);
 					this.notify("Bookmark saved");
 					return;
 				case "load":
@@ -713,9 +727,9 @@ class BookmarkPlugin {
 			
 			switch (target.dataset.action) {
 				case "erase":
-					//data.file.delete(target.parentElement.id);
+					//if (data.file.has(target.parentElement.id) data.file.delete(target.parentElement.id);
 					dtManager.removeFile(target.parentElement.id);
-					//this.saveData();
+					this.saveData();
 					return;
 			}
 		});
@@ -773,26 +787,45 @@ class BookmarkPlugin {
 			this.notify("Bookmark loaded");
 		});
 		
-		const last_rename = { id: this.#file.id ?? "", location: this.#file.location ?? "", name: this.#file.filename ?? "" };/* "" => ERRORCASE */
-		
 		editorManager.on("switch-file", (e) => {
-			if (!dtManager.hasFile(e.id)) dtManager.addFile(e.id, e.location ?? "", e.filename ?? "UNNAMED");
-			
 			this.#buffer[this.#file.id] = this.#array;
 			this.#array = this.#buffer[e.id] ?? []/*ERRORCASE*/;
 			bmManager.makeList(this.#array);
 			this.updateGutter();
 			this.#file = e;
-			last_rename.id = this.#file.id;
-			last_rename.location = this.#file.location;
-			last_rename.name = this.#file.filename;
 			dtManager.tryFocus(this.#file.id);
 			this.notify("Bookmark switched");
 		});
 		
+		//editorManager.on("rename-file", (e) => {});
+		
+		editorManager.on("save-file", async (e) => {
+			await this.saveData(this.#file, this.#array);
+			this.notify("Bookmark saved");
+		});
+		
+		editorManager.on("remove-file", (e) => { if (this.#buffer[e.id])/*!ERRORCASE*/ delete this.#buffer[e.id] });
+		
+		editorManager.editor.on("change", (e) => {
+			if (e.start.row != e.end.row) {
+				const newArray = [];
+				if (e.action == "insert") {
+					this.#array.forEach((row) => { newArray.push(row > e.start.row ? (row + (e.end.row - e.start.row)) : row) });
+				} else if (e.action == "remove") {
+					this.#array.forEach((row) => { newArray.push(row > e.end.row ? (row - (e.end.row - e.start.row)) : row) });
+				};
+				this.#array.splice(0, Infinity, ...newArray);
+				this.updateGutter();
+			};
+			if (bmWindow.visible && bmManager.visible) bmManager.editList(this.#array);
+		});
+		
 		bmWindow.attachContent(bmManager, dtManager, dtManager.regexManager, debugManager);
 		
-		data.regex.forEach((req) => { dtManager.regexManager.addRegex(req[0], req[1]) });
+		bmManager.makeList(this.#array);
+		this.updateGutter();
+		
+		data.regex.forEach((req) => { dtManager.regexManager.addRegex(...req) });
 		
 		document.head.append(this.#style);
 		
@@ -805,6 +838,11 @@ class BookmarkPlugin {
 		this.#debugSB.hide();
 		this.#bmWindow.visible = false;
 		this.#style.remove();
+		editorManager.editor.commands.removeCommand("readyBookmark");
+		editorManager.editor.commands.removeCommand("toggleBookmarkList");
+		editorManager.editor.commands.removeCommand("toggleBookmark");
+		editorManager.editor.commands.removeCommand("previousBookmark");
+		editorManager.editor.commands.removeCommand("nextBookmark");
 		if (this.plugSettings) delete settings.value[plugin.id];
 		settings.update(true);
 	}
