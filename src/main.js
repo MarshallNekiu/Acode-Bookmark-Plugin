@@ -400,6 +400,8 @@ class DataManager extends BMWContent{
 		return null;
 	}
 	
+	hasFile(id) { return !!this.#getFile(id) }
+	
 	#getFolder(fromFolder, arrLoc, idxLoc, create = false) {
 		let folder = fromFolder.firstElementChild;
 		
@@ -703,6 +705,39 @@ class BookmarkPlugin {
 		// DATA MANAGER
 		dtManager.controlPanel.addEventListener("bmtoggle", () => { bmWindow.setContent(dtManager.visible ? dtManager.regexManager : dtManager) });
 		
+		dtManager.controlPanel.addEventListener("click", (e) => {
+			const target = e.target.closest("[data-action]");
+			if (!target) return;
+			
+			switch (target.dataset.action) {
+				case "back":
+					bmWindow.setContent(bmManager);
+					bmManager.editList(this.#array);
+					return;
+				case "check-files":
+					dtManager.checkFiles();
+					return;
+			}
+		});
+		
+		dtManager.list.addEventListener("click", (e) => {
+			const target = e.target.closest("[data-action]");
+			if (!target) return;
+			
+			switch (target.dataset.action) {
+				case "erase":
+					//data.file.delete(target.parentElement.id);
+					dtManager.removeFile(target.parentElement.id);
+					//this.saveData();
+					return;
+			}
+		});
+		
+		dtManager.regexManager.list.addEventListener("input", (e) => {
+			data.regex = dtManager.regexManager.getRegex();
+			dtManager.applyRegex();
+		});
+		
 		// ACE/ACODE EVENT //
 		editorManager.editor.on("gutterclick", (e) => {
 			const row = e.getDocumentPosition().row;
@@ -721,6 +756,7 @@ class BookmarkPlugin {
 		const last_rename = { id: this.#file.id ?? "", location: this.#file.location ?? "", name: this.#file.filename ?? "" };/* "" => ERRORCASE */
 		
 		editorManager.on("switch-file", (e) => {
+			if (!dtManager.hasFile(e.id)) dtManager.addFile(e.id, e.location ?? "", e.filename ?? "UNNAMED");
 			this.#buffer[this.#file.id] = this.#array;
 			this.#array = this.#buffer[e.id] ?? []/*ERRORCASE*/;
 			bmManager.makeList(this.#array);
@@ -742,7 +778,7 @@ class BookmarkPlugin {
 		document.head.append(this.#style);
 		
 		settings.update();
-		alert("ready");
+		this.notify("ready");
 	}
 
 	async destroy() {
