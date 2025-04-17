@@ -179,9 +179,9 @@ class BookmarkManager extends BMWContent {
 			const target = e.target.closest("[data-action]");
 			if (!target) return;
 			
-			const event = new CustomEvent("bmclick", { details: {
+			const event = new CustomEvent("bmclick", { detail: {
 				action: target.dataset.action,
-				row: parseInt(target.parentElement.prefixNode.innerText)
+				row: parseInt(target.parentElement.prefixNode.innerText) - 1
 			} });
 			this.list.dispatchEvent(event);
 		});
@@ -682,6 +682,20 @@ class BookmarkPlugin {
 					return;
 				case "file":
 					bmWindow.setContent(dtManager);
+					return;
+			}
+		});
+		
+		bmManager.list.addEventListener("bmclick", (e) => {
+			switch (e.detail.action) {
+				case "select":
+					editorManager.editor.gotoLine(e.detail.row + 1);
+					return;
+				case "erase":
+					const idx = this.#array.indexOf(e.detail.row);
+					this.#array.splice(idx, 1);
+					bmManager.removeRow(idx);
+					editorManager.editor.session.removeGutterDecoration(e.detail.row, "mnbm-gutter");
 					return;
 			}
 		});
