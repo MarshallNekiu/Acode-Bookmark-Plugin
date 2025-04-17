@@ -500,15 +500,16 @@ class DataManager extends BMWContent{
 		const files = [];
 		
 		for (let i = 0; i < folders.length; i++) {
-			paths.push([folders[i].parentElement.className == "mnbm-folder" ? paths[i - 1][0] : i, folders[i].path]);
-			for (let e of folders[i].children) { if (e.className == "mnbm-file") files.push([e.id, [i, e.textNode.innerText]]) }
+			const root = folders[i].parentElement.className == "mnbm-folder" ? Array.prototype.indexOf.call(folders, folders[i].parentElement) : i;
+			paths.push([root, folders[i].path]);
+			for (let e of folders[i].children) { if (e.className == "mnbm-file") files.push([e.id, [paths[i][0], e.textNode.innerText]]) }
 		}
 		if (uri) {
 			const arr = [];
 			files.forEach((x) => {
 				arr.push([x[0], ["", x[1][1]]]);
 				let i = x[1][0];
-				while (i > paths[i][0]) {
+				while (i != paths[i][0]) {
 					arr[arr.length - 1][1][0] = paths[i][1] + arr[arr.length - 1][1][0];
 					i = paths[i][0];
 				}
@@ -517,53 +518,6 @@ class DataManager extends BMWContent{
 			return [paths, files, arr];
 		};
 		return [paths, files];
-		/*
-		const map = [];
-		for (let i = 0; i < files.length; i++) {
-			let folder = files[i].parentElement;
-			let path = "";
-			while (folder.className == "mnbm-folder") {
-				path = folder.path + path;
-				folder = folder.parentElement;
-			}
-			map.push([files[i].id, [i, path, files[i].textNode.innerText]]);
-		}
-		
-		if (uri) return map;
-		
-		const tree = new Map();
-		*/
-		/*
-		for (let i = 0; i < map.length; i++) { // APPLY PATH SPLIT
-			let x = true;
-			for (let j = i - 1; j >= 0; j--) {
-				if (map[i][1][1].startsWith(map[j][1][1])) {
-					tree.set(map[i][0], [j, map[i][1][1].slice(map[j][1][1].length), map[i][1][2]]);
-					x = false;
-					break;
-				};
-			}
-			if (x) tree.set(map[i][0], [i, map[i][1][1], map[i][1][2]]);
-		}
-		*/
-		/*
-		for (let i = 0; i < map.length; i++) { // APPLY PATH SPLIT //
-			let x = true;
-			const arrLoc = this.pathSplit(map[i][1][1]);
-			for (let j = i - 1; j >= 0; j--) {
-				const arrLoc2 = this.pathSplit(map[j][1][1]);
-				debugManager.log("i: " + i, [arrLoc, map[i][1][2]], "j: " + j, [arrLoc2, map[j][1][2]]);
-				if (map[i][1][1].startsWith(map[j][1][1])) {
-					tree.set(map[i][0], [j, map[i][1][1].slice(map[j][1][1].length), map[i][1][2]]);
-					x = false;
-					break;
-				};
-			}
-			if (x) tree.set(map[i][0], [i, map[i][1][1], map[i][1][2]]);
-		}
-		debugManager.log(...tree);
-		return tree;
-		*/
 	}
 		
 	setTree(tree) {
