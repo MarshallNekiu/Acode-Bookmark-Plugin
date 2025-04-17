@@ -200,7 +200,7 @@ class BookmarkManager extends BMWContent {
 	addRow(row, to) {
 		const idx = this.list.childElementCount;
 		this.list.append(this.#newItem(row));
-		if (to != idx) this.#moveItem(idx, to);
+		if (to != idx) this.#moveItem(idx, to); 
 		if (this.visible) this.align();
 	}
 	
@@ -241,7 +241,7 @@ class BookmarkManager extends BMWContent {
 		}
 	}
 }
-   
+
 class RegexManager extends BMWContent {
 	
 	constructor() {
@@ -304,6 +304,8 @@ class RegexManager extends BMWContent {
 }
 
 class DataManager extends BMWContent{
+	static #signalToggle = new Event("bmtoggle");
+	
 	#regexManager = new RegexManager();
 	#focus = null;
 	
@@ -316,14 +318,8 @@ class DataManager extends BMWContent{
 			<button class="mnbm-check-files" data-action="check-files"> (...) </button>
 			<button class="mnbm-regex-visible" data-action="regex-visible"> (.*) </button>
 		`;
-		
-		const toggle = () => {
-			this.visible = !this.visible;
-			this.regexManager.visible = !this.visible;
-		};
-		
-		this.controlPanel.lastElementChild.addEventListener("click", (e) => { toggle() });
-		this.regexManager.controlPanel.firstElementChild.addEventListener("click", (e) => { toggle() });
+		this.controlPanel.lastElementChild.addEventListener("click", (e) => { this.controlPanel.dispatchEvent(DataManager.#signalToggle) });
+		this.regexManager.controlPanel.firstElementChild.addEventListener("click", (e) => { this.controlPanel.dispatchEvent(DataManager.#signalToggle) });
 	}
 	
 	addFile(id, loc, fn) {
@@ -513,7 +509,7 @@ class DataManager extends BMWContent{
 		
 		for (let i = 0; i < map.length; i++) {
 			let x = true;
-			for (let j = i - 1; j >= 0; j--) { // TODO // APPLY PATHSPLIT
+			for (let j = i - 1; j >= 0; j--) {
 				if (map[i][1][1].startsWith(map[j][1][1])) {
 					tree.set(map[i][0], [j, map[i][1][1].slice(map[j][1][1].length), map[i][1][2]]);
 					x = false;
@@ -582,7 +578,7 @@ class DataManager extends BMWContent{
 
 class BookmarkPlugin {
 	#fsData;
-	#data = data = { plugin: { version: "1.2.3" }, file: new Map(), regex: [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
+	#data = { plugin: { version: "1.2.3" }, file: new Map(), regex: [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
 	#file = editorManager.activeFile;
 	#buffer = {};
 	#array = [];
@@ -591,10 +587,11 @@ class BookmarkPlugin {
 	#dtManager = new DataManager();
 	#bmWindow = new BMWindow();
 	#showSB;
+	#debugSB;
 	#ntfQueue = [];
 	
-	constructor() {
-		if (!settings.value[plugin.id]) {
+  constructor() {
+		if (!this.plugSettings) {
 			settings.value[plugin.id] = {
 				nextBMCommand: "Ctrl-L",
 				prevBMCommand: "Ctrl-J",
@@ -608,7 +605,7 @@ class BookmarkPlugin {
 
 	async init() {
 		const self = this;
-		const fsData = this.#fsData = await fs(wind.DATA_STORAGE + "bookmark.json");
+		const fsData = this.#fsData = await fs(window.DATA_STORAGE + "bookmark.json");
 		if (!await fsData.exists()) await fs(window.DATA_STORAGE).createFile("bookmark.json", JSON.stringify({ plugin: this.#data.plugin, file: [], regex: this.#data.regex }));
 		
 		const dataRaw = await fsData.readFile("utf8");
@@ -635,7 +632,7 @@ class BookmarkPlugin {
 		
 		const [bmManager, dtManager, bmWindow] = [this.#bmManager, this.#dtManager, this.#bmWindow];
 		
-		//SIDE BUTTON
+		// SIDE BUTTON //
 		this.#showSB = SideButton({
 			text: "Bookmark",
 			icon: "my-icon",
@@ -645,7 +642,7 @@ class BookmarkPlugin {
 		});
 		this.#showSB.show();
 		
-		const debugSB = SideButton({
+		this.#debugSB = SideButton({
 			text: "debug",
 			icon: "my-icon",
 			onclick() {
@@ -655,22 +652,15 @@ class BookmarkPlugin {
 			backgroundColor: "#3e4dc4",
 			textColor: "#000"
 		});
-		debugSB.show();
+		this.#debugSB.show();
 		
-		//EVENTS
-		editorManager.editor.on("gutterclick", (e) => {
-			const row = e.getDocumentPosition().row;
-			this.toggleBookmark(row);
-		});
-		
-		//bmWindow.panel.addEventListener("hide", () => {});
-		
+		// HTML EVENT //
 		bmWindow.panel.addEventListener("show", () => {
 			bmWindow.setContent(bmManager);
 			bmManager.editList(this.#array);
 		});
-		  
-		//BOOKMARK MANAGER
+		
+		// BOOKMARK MANAGER //
 		bmManager.controlPanel.addEventListener("click", async (e) => {
 			const target = e.target.closest("[data-action]");
 			if (!target) return;
@@ -681,7 +671,7 @@ class BookmarkPlugin {
 					this.toggleBookmark(row);
 					return;
 				case "save":
-					await this.saveData(this.#file, this.#array);
+					//await this.saveData(this.#file, this.#array);
 					this.notify("Bookmark saved");
 					return;
 				case "load":
@@ -696,93 +686,18 @@ class BookmarkPlugin {
 			}
 		});
 		
-		bmManager.list.addEventListener("bmclick", (e) => {
-			switch (e.details.action) {
-				case "select":
-					editorManager.editor.gotoLine(e.details.row + 1);
-					return;
-				case "erase":
-					const idx = this.#array.indexOf(e.details.row);
-					this.#array.splice(idx, 1);
-					bmManager.removeRow(idx);
-					editorManager.editor.session.removeGutterDecoration(e.details.row, "mnbm-gutter");
-					return;
-			}
+		// DATA MANAGER
+		dtManager.controlPanel.addEventListener("bmtoggle", () => { bmWindow.setContent(dtManager.visible ? dtManager.regexManager : dtManager) });
+		
+		// ACE/ACODE EVENT //
+		editorManager.editor.on("gutterclick", (e) => {
+			const row = e.getDocumentPosition().row;
+			this.toggleBookmark(row);
 		});
 		
-		//DATA MANAGER
-		dtManager.controlPanel.addEventListener("click", (e) => {
-			const target = e.target.closest("[data-action]");
-			if (!target) return;
-			
-			switch (target.dataset.action) {
-				case "back":
-					bmWindow.setContent(bmManager);
-					bmManager.editList(this.#array);
-					return;
-				case "check-files":
-					dtManager.checkFiles();
-					return;
-			}
-		});
-		
-		dtManager.list.addEventListener("click", (e) => {
-			const target = e.target.closest("[data-action]");
-			if (!target) return;
-			
-			switch (target.dataset.action) {
-				case "erase":
-					data.file.delete(target.parentElement.id);
-					dtManager.removeFile(target.parentElement.id);
-					this.saveData();
-					return;
-			}
-		});
-		
-		dtManager.regexManager.list.addEventListener("input", (e) => {
-			data.regex = dtManager.regexManager.getRegex();
-			dtManager.applyRegex();
-		});
-		
-		//DEBUG MANAGER
-		debugManager.controlPanel.addEventListener("click", async (e) => {
-			const target = e.target.closest("[data-action]");
-			if (!target) return;
-			
-			switch (target.dataset.action) {
-				case "data":
-					debugManager.log(
-						"plugin: " + JSON.stringify(data.plugin),
-						"file: ", ...Array.from(data.file),
-						"regex: " + JSON.stringify(data.regex)
-					);
-					return;
-				case "buffer":
-					debugManager.log(...this.#buffer);
-					return;
-				case "file":
-					debugManager.log(this.#file.id + " : " + this.#file.uri);
-					return;
-				case "array":
-					debugManager.log(this.#array);
-					return;
-				case "tree":
-					debugManager.log(...Array.from(dtManager.getTree(true)), "=>", ...Array.from(dtManager.getTree()));
-					return;
-				case "clear":
-					debugManager.list.innerHTML = "";
-					return;
-			}
-		});
-		
-		//EDITOR EVENTS
-		editorManager.on("new-file", (e) => {
-			//debugManager.log("new-file: " + e.id + " : " + e.filename);
-			this.#buffer[e.id] = [...(data.file.get(e.id)?.array ?? [])];
-		});
+		editorManager.on("new-file", (e) => { this.#buffer[e.id] = [...(data.file.get(e.id)?.array ?? [])] });
 		
 		editorManager.on("file-loaded", (e) => {
-			//debugManager.log("file-loaded: " + e.id + " : " + e.filename);
 			this.#array.splice(0, Infinity, ...(data.file.get(e.id)?.array ?? []));
 			bmManager.makeList(this.#array);
 			this.updateGutter();
@@ -792,7 +707,6 @@ class BookmarkPlugin {
 		const last_rename = { id: this.#file.id ?? "", location: this.#file.location ?? "", name: this.#file.filename ?? "" };/* "" => ERRORCASE */
 		
 		editorManager.on("switch-file", (e) => {
-			//debugManager.log(`switch-file: ${this.file.filename} => ${e.filename}`);
 			this.#buffer[this.#file.id] = this.#array;
 			this.#array = this.#buffer[e.id] ?? []/*ERRORCASE*/;
 			bmManager.makeList(this.#array);
@@ -802,99 +716,41 @@ class BookmarkPlugin {
 			last_rename.location = this.#file.location;
 			last_rename.name = this.#file.filename;
 			dtManager.tryFocus(this.#file.id);
-			this.notify("Bookmark switched"); // : " + "Files: " + infi.length + " uri: " + this.file.uri + " || " + this.getFormattedPath(this.file.uri), 5000);
+			this.notify("Bookmark switched");
 		});
 		
-		editorManager.on("rename-file", (e) => {
-			debugManager.log("rename-file: " + last_rename.id + " : " + last_rename.name, " => ", e.id + " : " + e.filename);
-			/*
-			if (data.file[last_rename.id]) {
-			data.file[e.id] = { uri: [-1, e.location, e.filename], array: [...data.file[last_rename.id].array] };
-			if (!(last_rename.id == e.id)) delete data.file[last_rename.id];
-			data.regex = this.dtManager.regexManager.getRegex();
-			await fsData.writeFile(JSON.stringify(data));
-			}
-			if (data.file[e.id]) data.file[e.id].uri = [-1, e.location, e.filename];
-			this.buffer[e.id] = [...this.buffer[last_rename.id]];
-			if (!(last_rename.id == e.id)) delete this.buffer[last_rename.id];
-			if (dtManager.visible) dtManager.reLoad(data.file);
-			this.file = e;
-			last_rename.id = this.file.id;
-			last_rename.location = this.file.location;
-			last_rename.name = this.file.filename;
-			*/
-			this.notify("Bookmark renamed");
-		});
-		
-		editorManager.on("save-file", async (e) => {
-			await this.saveData(this.#file, this.#array);
-			this.notify("Bookmark saved");
-		});
-		
-		editorManager.on("remove-file", (e) => {
-		  //debugManager.log("remove-file: " + e.id + " : " + e.filename);
-		  if (this.#buffer[e.id])/*!ERRORCASE*/ delete this.#buffer[e.id];
-		});
-		
-		editorManager.editor.on("change", (e) => {
-			if (e.start.row != e.end.row) {
-				const newArray = [];
-				if (e.action == "insert") {
-					this.#array.forEach((row) => { newArray.push(row > e.start.row ? row + (e.end.row - e.start.row) : row) });
-				} else if (e.action == "remove") {
-					this.#array.forEach((row) => { newArray.push(row > e.end.row ? row - (e.end.row - e.start.row) : row) });
-				};
-				this.#array.splice(0, Infinity, ...newArray);
-				this.updateGutter();
-				//debugManager.log(JSON.stringify(e));
-			};
-			if (bmWindow.visible && bmManager.visible) bmManager.writeList(this.#array);
-		});
+		settings.on("update", this.#onSettingsUpdated);
 		
 		bmWindow.attachContent(bmManager, dtManager, dtManager.regexManager, debugManager);
 		
-		bmManager.makeList(this.#array);
-		this.updateGutter();
-		
-		data.regex.forEach((req) =>  { dtManager.regexManager.addRegex(req[0], req[1]) });
-		const tree = new Map();
-		data.file.forEach((v, k) => {
-			tree.set(k, v.uri);
-			debugManager.log(JSON.stringify({ k: v }), "=>", tree.get(k));
-		});
-		dtManager.setTree(tree);
+		data.regex.forEach((req) => { dtManager.regexManager.addRegex(req[0], req[1]) });
 		
 		document.head.append(this.#style);
 		
 		settings.update();
-		
-		this.notify("Bookmark Ready");
+		alert("ready");
 	}
 
 	async destroy() {
 		this.#showSB.hide();
+		this.#debugSB.hide();
 		this.#bmWindow.visible = false;
 		this.#style.remove();
-		editorManager.editor.commands.removeCommand("readyBookmark");
-		editorManager.editor.commands.removeCommand("toggleBookmarkList");
-		editorManager.editor.commands.removeCommand("toggleBookmark");
-		editorManager.editor.commands.removeCommand("previousBookmark");
-		editorManager.editor.commands.removeCommand("nextBookmark");
 		if (this.plugSettings) delete settings.value[plugin.id];
 		settings.update(true);
 	}
-
+	
 	addBookmark(row) {
-		let idx = -1;
-		for (let i = 0; i < this.#array.length; i++) {
-			if (this.#array[i] > row) break;
+		let idx = 0;
+		for (let r of this.#array) {
+			if (r >= row) break;
 			idx += 1;
 		};
-		if (idx < 0 || this.#array[idx] == row) return;
+		if (this.#array[idx] == row) return;
 		this.#array.splice(idx, 0, row);
-		this.bmManager.addRow(row, idx);
+		this.#bmManager.addRow(row, idx);
 	}
-  
+	
 	toggleBookmark(row) {
 		const idx = this.#array.indexOf(row);
 		if (idx > -1) {
@@ -912,120 +768,25 @@ class BookmarkPlugin {
 		this.#array.forEach((row) => { editorManager.editor.session.addGutterDecoration(row, "mnbm-gutter") });
 	}
 	
-	async saveData(file, array, overwrite = false) {
-		if (file) {
-			array = array ?? this.#array;
-			if (this.#data.file.has(file.id)) {
-				this.#data.file.set(file.id, { uri: this.#data.file.get(file.id).uri, array: [...array] });
-			} else {
-				this.#dtManager.addFile(file.id, file.location, file.filename);
-				const tree = this.#dtManager.getTree();
-				tree.forEach((v, k) => { this.#data.file.set(k, { uri: v, array: this.#data.file.get(k)?.array ?? []/*ERRORCASE*/ }) });
-				this.#data.file.get(file.id).array = [...array];
-			};
-			if (array.length == 0) {
-				this.#data.file.delete(file.id);
-				this.dtManager.removeFile(file.id);
-			};
-			if (overwrite) {
-				this.#array.splice(0, Infinity, ...array);
-				this.#bmManager.makeList(this.#array);
-				this.updateGutter();
-			};
-		};
-		const tree = this.#dtManager.getTree();
-		tree.forEach((v, k) => { tree.set(k, { uri: v, array: this.#data.file.get(k)?.array ?? []/*ERRORCASE*/ }) });
-		this.#data.file = tree;
-		await this.#fsData.writeFile(JSON.stringify({ plugin: this.#data.plugin, file: Array.from(tree), regex: this.#data.regex }));
-	}
-  
-	#unshiftNtfQueue() {
+	#shiftNtfQueue() {
 		if (this.#ntfQueue.length == 0) return; // ERRORCASE
 		const req = this.#ntfQueue[0];
-		const ntf = tag("p", { className: "mnbm-bookmark", innerText: req[0] });
+		const ntf = tag("p", { className: "mnbm-notification", innerText: req[0] });
+		document.body.append(ntf);
 		setTimeout(() => {
-			this.#ntfQueue.unshift();
-			if (this.#ntfQueue.length > 0) this.#unshiftNtfQueue();
+			this.#ntfQueue.shift();
+			ntf.remove();
+			if (this.#ntfQueue.length > 0) this.#shiftNtfQueue();
 		}, req[1]);
 	}
 
 	notify(x, t = 1000) {
 		this.#ntfQueue.push([x, t]);
-		if (this.#ntfQueue.length == 1) this.#unshiftNtfQueue();
+		if (this.#ntfQueue.length == 1) this.#shiftNtfQueue();
 	}
-
-	updateSettings() {
-		const self = this;
-		if (this.plugSettings.sideButton) {
-			this.#showSB?.show();
-		} else {
-			this.#showSB?.hide();
-		};
-
-		editorManager.editor.commands.removeCommand("toggleBookmarkList");
-		if (this.plugSettings.toggleBMLCommand.length > 0) {
-			editorManager.editor.commands.addCommand({
-				name: "toggleBookmarkList",
-				description: "",
-				bindKey: { win: this.plugSettings.toggleBMLCommand },
-				exec: async () => {
-					if (this.#bmWindow.visible) {
-						this.#bmWindow.hide();
-						return;
-					};
-					this.#bmWindow.show();
-				}
-			});
-		};
-
-		editorManager.editor.commands.removeCommand("toggleBookmark");
-		if (this.plugSettings.toggleBMCommand.length > 0) {
-			editorManager.editor.commands.addCommand({
-				name: "toggleBookmark",
-				description: "",
-				bindKey: { win: this.plugSettings.toggleBMCommand },
-				exec: () => {
-					const row = editorManager.editor.getSelectionRange().start.row;
-					this.toggleBookmark(row);
-				}
-			});
-		};
-
-		editorManager.editor.commands.removeCommand("nextBookmark");
-		if (this.plugSettings.nextBMCommand.length > 0) {
-			editorManager.editor.commands.addCommand({
-				name: "nextBookmark",
-				description: "",
-				bindKey: { win: this.plugSettings.nextBMCommand },
-				exec: () => {
-					const row = editorManager.editor.getSelectionRange().start.row;
-					for (let i = 0; i < this.#array.length; i++) {
-						if (this.#array[i] > row) {
-							editorManager.editor.gotoLine(this.#array[i] + 1);
-							break;
-						};
-					};
-				}
-			});
-		};
-
-		editorManager.editor.commands.removeCommand("previousBookmark");
-		if (this.plugSettings.prevBMCommand.length > 0) {
-			editorManager.editor.commands.addCommand({
-				name: "previousBookmark",
-				description: "",
-				bindKey: { win: this.plugSettings.prevBMCommand },
-				exec: () => {
-					const row = editorManager.editor.getSelectionRange().start.row;
-					for (let i = 0; i < this.#array.length; i++) {
-						if (this.#array[i] < row) {
-							editorManager.editor.gotoLine(this.#array[i] + 1);
-							break;
-						};
-					};
-				}
-			});
-		};
+	
+	#onSettingsUpdated() {
+		alert("settings", "update");
 	}
 
 	get settingsObj() {
@@ -1067,10 +828,8 @@ class BookmarkPlugin {
 				}
 			],
 			cb: (key, value) => {
-				if (!this.plugSettings) return;
 				this.plugSettings[key] = value;
 				settings.update();
-				this.updateSettings();
 			}
 		};
 	}
@@ -1091,3 +850,52 @@ if (window.acode) {
 	);
 	acode.setPluginUnmount(plugin.id, bookmarkPlugin.destroy);
 };
+
+/*
+async init() {
+  	const st = tag("style", { type: "text/css", innerHTML: styles });
+  	document.head.append(st);
+  	this.#bmWindow.show();
+  	setTimeout(() => {
+  		this.#bmWindow.attachContent(debugManager, this.#bmManager, this.#dtManager, this.#dtManager.regexManager);
+  		this.#bmWindow.setContent(debugManager);
+  		debugManager.log(...Array(100).fill("log"));
+  	}, 500);
+  	setTimeout(() => {
+  		this.#bmWindow.setContent(this.#bmManager);
+  		setTimeout(() => {
+	  		for (let i = 0; i <= 100; i++) {
+	  			setTimeout(() => {
+	  				this.#bmManager.addRow(i * 16, i);
+	  			}, i * 1);
+	  		}
+  		}, 500);
+  	}, 1000);
+  	setTimeout(() => {
+  		this.#bmWindow.setContent(this.#dtManager)
+  		const arr = [];
+  		arr.push(["id0", "path0/path0/", "nameless"]);
+	    arr.push(["id1", "path0/path0/path0/", "nameless1"]);
+	    arr.push(["id2", "path0/path0/path0/", "nameless2"]);
+	    arr.push(["id3", "path0/path1/", "nameless3"]);
+	   	arr.push(["id4", "path0/path1/path0/path1/", "nameless4"]);
+	   	arr.push(["id5", "path0/path1/path0/path1/", "nameless5"]);
+	   	arr.push(["id6", "path0/path0/", "nameless6"]);
+	   	arr.push(["id7", "path0/", "nameless7"]);
+	   	for (let i = 1; i <= arr.length; i++) {
+	   		setTimeout(() => {
+	   			this.#dtManager.addFile(...arr[i - 1]);
+	   			//alert("t", [...this.#dtManager.getTree(true), "=>", ...this.#dtManager.getTree()].map((e) => { return JSON.stringify(e) + "<br>" }));
+	   		}, i * 1000);
+	   	}
+  		//alert("rgx", this.#regexManager.format);
+  		//this.#regexManager.addRegex("origin", "::");
+  		//this.#regexManager.addRegex("path1", "://");
+  		setTimeout(() => {
+  			//alert("rgx0");
+  			//const f = this.#regexManager.format("origin::path0/path1://path0/path1");
+  			//alert("rgx2", f ?? "null");
+  		}, 5000);
+  	}, 2500);
+  }
+  */
