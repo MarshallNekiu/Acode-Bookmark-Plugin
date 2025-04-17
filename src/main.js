@@ -349,7 +349,7 @@ class DataManager extends BMWContent{
 	}
 	
 	#sliceFolder(folder, deep) {
-		const fPath = this.pathSplit(folder.dataset.path);
+		const fPath = this.pathSplit(folder.path);
 		const lPath = this.splitReduce(fPath, 0, deep);
 		const rPath = this.splitReduce(fPath, deep);
 		const lFolder = this.#newFolder(lPath);
@@ -432,7 +432,6 @@ class DataManager extends BMWContent{
 					i == fpath.length - 1,
 					i == 0
 				];
-				
 				if (FOLDER_FOUND) {
 					if (REQUEST_LIMIT) {
 						if (FOLDER_LIMIT) return folder; // EXACT PATH
@@ -469,21 +468,20 @@ class DataManager extends BMWContent{
 	}
 	
 	sortFolder(...queue) {
-		const folder = queue.shift();
-		if (!folder) return;
-		const folders = [];
-		const files = [];
-		for (let e of folder.children) {
-			if (e.className == "mnbm-folder") {
-				folders.push(e);
-				return;
-			};
-			files.push(e);
-		}
-		folders.sort((a, b) => a.path.localeCompare(b.path));
-		files.sort((a, b) => a.textNode.innerText.localeCompare(b.textNode.innerText));
-		folder.append(...files, ...folders);
-		this.sortFolder(queue);
+		queue.forEach((folder) => {
+			const folders = [];
+			const files = [];
+			for (let e of folder.children) {
+				if (e.className == "mnbm-folder") {
+					folders.push(e);
+					continue;
+				};
+				files.push(e);
+			}
+			folders.sort((a, b) => a.path.localeCompare(b.path));
+			files.sort((a, b) => a.textNode.innerText.localeCompare(b.textNode.innerText));
+			folder.append(...files, ...folders);
+		});
 	}
 	
 	filePath(file) {
@@ -515,7 +513,7 @@ class DataManager extends BMWContent{
 		
 		for (let i = 0; i < map.length; i++) {
 			let x = true;
-			for (let j = i - 1; j >= 0; j--) {
+			for (let j = i - 1; j >= 0; j--) { // TODO // APPLY PATHSPLIT
 				if (map[i][1][1].startsWith(map[j][1][1])) {
 					tree.set(map[i][0], [j, map[i][1][1].slice(map[j][1][1].length), map[i][1][2]]);
 					x = false;
@@ -575,7 +573,7 @@ class DataManager extends BMWContent{
 			split[split.length - 1] += path[i];
 			if (path[i] == "/" && path[i + 1] != "/") split.push("");
 		}
-		path[path.length - 1] += path[path.length - 1].slice(-1);
+		split[split.length - 1] += path.slice(-1);
 		return split;
 	}
 	
