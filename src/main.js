@@ -129,7 +129,7 @@ class Debugger extends BMWContent {
 			const li = tag("li", {
 				className: "mnbm-item",
 				prefixNode: tag("p", { className: "mnbm-prefix", innerText: this.list.childElementCount }),
-				textNode: tag("p", { className: "mnbm-text", innerText: JSON.stringify(log) })
+				textNode: tag("p", { className: "mnbm-text", innerText: JSON.stringify(log) ?? "invalid log" })
 			});
 			li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
 			li.textNode.scrollLeft = 100000;
@@ -493,8 +493,31 @@ class DataManager extends BMWContent{
 		return path;
 	};
 	
-	getTree(uri = false) {
-		const files = this.list.querySelectorAll(".mnbm-file");
+	getTree(uri = false) { // [ Map([root_idx, branch]), Map([id, [branch_idx, name]]), #uri = Map([id, [path, name]]) ]
+		const folders = this.list.querySelectorAll(".mnbm-folder");
+		if (folders.length == 0) return [[], []];
+		const paths = [];
+		const files = [];
+		
+		for (let i = 0; i < folders.length; i++) {
+			paths.push([folders[i].parentElement.className == "mnbm-folder" ? paths[i - 1][0] : i, folders[i].path]);
+			for (let e of folders[i].children) { if (e.className == "mnbm-file") files.push([e.id, [i, e.textNode.innerText]]) }
+		}
+		if (uri) {
+			const arr = [];
+			files.forEach((x) => {
+				arr.push([x[0], ["", x[1][1]]]);
+				let i = x[1][0];
+				while (i > paths[i][0]) {
+					arr[arr.length - 1][1][0] = paths[i][1] + arr[arr.length - 1][1][0];
+					i = paths[i][0];
+				}
+				arr[arr.length - 1][1][0] = paths[i][1] + arr[arr.length - 1][1][0];
+			});
+			return [paths, files, arr];
+		};
+		return [paths, files];
+		/*
 		const map = [];
 		for (let i = 0; i < files.length; i++) {
 			let folder = files[i].parentElement;
@@ -509,8 +532,9 @@ class DataManager extends BMWContent{
 		if (uri) return map;
 		
 		const tree = new Map();
-		
-		for (let i = 0; i < map.length; i++) {
+		*/
+		/*
+		for (let i = 0; i < map.length; i++) { // APPLY PATH SPLIT
 			let x = true;
 			for (let j = i - 1; j >= 0; j--) {
 				if (map[i][1][1].startsWith(map[j][1][1])) {
@@ -521,7 +545,25 @@ class DataManager extends BMWContent{
 			}
 			if (x) tree.set(map[i][0], [i, map[i][1][1], map[i][1][2]]);
 		}
+		*/
+		/*
+		for (let i = 0; i < map.length; i++) { // APPLY PATH SPLIT //
+			let x = true;
+			const arrLoc = this.pathSplit(map[i][1][1]);
+			for (let j = i - 1; j >= 0; j--) {
+				const arrLoc2 = this.pathSplit(map[j][1][1]);
+				debugManager.log("i: " + i, [arrLoc, map[i][1][2]], "j: " + j, [arrLoc2, map[j][1][2]]);
+				if (map[i][1][1].startsWith(map[j][1][1])) {
+					tree.set(map[i][0], [j, map[i][1][1].slice(map[j][1][1].length), map[i][1][2]]);
+					x = false;
+					break;
+				};
+			}
+			if (x) tree.set(map[i][0], [i, map[i][1][1], map[i][1][2]]);
+		}
+		debugManager.log(...tree);
 		return tree;
+		*/
 	}
 		
 	setTree(tree) {
@@ -545,8 +587,8 @@ class DataManager extends BMWContent{
 	}
 	
 	checkFiles() {
-		const t = this.getTree(true);
-		alert(JSON.stringify(t));
+		this.getTree();
+		//const t = this.getTree(true);
 		/*
 		const tree = new Map(this.getTree(true));
 		alert("tree", Array.from(tree).toString());
@@ -739,6 +781,39 @@ class BookmarkPlugin {
 			dtManager.applyRegex();
 		});
 		
+		// DEBUG MANAGER
+		debugManager.controlPanel.addEventListener("click", (e) => {
+			const target = e.target.closest("[data-action]");
+			if (!target) return;
+			
+			switch (target.dataset.action) {
+				case "data":
+					debugManager.log(
+						data,
+						"plugin: " + JSON.stringify(data.plugin),
+						"file: ", ...Array.from(data.file),
+						"regex: " + JSON.stringify(data.regex)
+					);
+					return;
+				case "buffer":
+					debugManager.log(...Array(this.#buffer));
+					return;
+				case "file":
+					debugManager.log(this.#file.id + " : " + this.#file.uri);
+					return;
+				case "array":
+					debugManager.log(this.#array);
+					return;
+				case "tree":
+					const [t0, t1] = [dtManager.getTree(), dtManager.getTree(true)];
+					debugManager.log(...t1[2], "=>", ...t0[0], ...t0[1]);
+					return;
+				case "clear":
+					debugManager.list.innerHTML = "";
+					return;
+			}
+		});
+		
 		// ACE/ACODE EVENT //
 		editorManager.editor.on("gutterclick", (e) => {
 			const row = e.getDocumentPosition().row;
@@ -758,6 +833,7 @@ class BookmarkPlugin {
 		
 		editorManager.on("switch-file", (e) => {
 			if (!dtManager.hasFile(e.id)) dtManager.addFile(e.id, e.location ?? "", e.filename ?? "UNNAMED");
+			
 			this.#buffer[this.#file.id] = this.#array;
 			this.#array = this.#buffer[e.id] ?? []/*ERRORCASE*/;
 			bmManager.makeList(this.#array);
