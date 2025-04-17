@@ -63,7 +63,8 @@ class BMWindow {
 	}
 	
 	async #onTouchMoved(event) {
-		const x = (event.touches[0].clientX / (this.panel.offsetWidth * 2));
+		const x = ((event.touches[0].clientX + this.panel.offsetWidth / 2 - 16) / (this.panel.offsetWidth * 2));
+		//const x = (event.touches[0].clientX / (this.panel.offsetWidth * 2));
 		const y = ((event.touches[0].clientY + this.panel.offsetHeight / 2 - 16) / (this.panel.offsetHeight * 2));
 		this.panel.style.left = x * 100 +  "%";
 		this.panel.style.top = y * 100 + "%";
@@ -592,16 +593,7 @@ class BookmarkPlugin {
 	#ntfQueue = [];
 	
   constructor() {
-		if (!this.plugSettings) {
-			settings.value[plugin.id] = {
-				nextBMCommand: "Ctrl-L",
-				prevBMCommand: "Ctrl-J",
-				toggleBMCommand: "Ctrl-T",
-				toggleBMLCommand: "Ctrl-B",
-				sideButton: true
-			};
-			settings.update(false)
-		};
+		if (!this.plugSettings) this.resetSettings();
 	}
 
 	async init() {
@@ -621,6 +613,7 @@ class BookmarkPlugin {
 			};
 			data.regex = data.regex ?? [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
 			data.plugin.version = "1.2.3";
+			this.resetSettings();
 		}
 		data.file = new Map(data.file);
 		this.#data = data;
@@ -802,7 +795,7 @@ class BookmarkPlugin {
 			this.notify("Bookmark switched");
 		});
 		
-		settings.on("update", this.#onSettingsUpdated);
+		//settings.on("update", this.#onSettingsUpdated);
 		
 		bmWindow.attachContent(bmManager, dtManager, dtManager.regexManager, debugManager);
 		
@@ -868,13 +861,41 @@ class BookmarkPlugin {
 		if (this.#ntfQueue.length == 1) this.#shiftNtfQueue();
 	}
 	
+	resetSettings() {
+		settings.value[plugin.id] = {
+			nextBMCommand: "Ctrl-L",
+			prevBMCommand: "Ctrl-J",
+			toggleBMCommand: "Ctrl-T",
+			toggleBMLCommand: "Ctrl-B",
+			sideButton: true,
+			panelWidth: "50%",
+			panelHeight: "50%"
+		};
+		settings.update(false)
+	}
+	
 	#onSettingsUpdated() {
-		alert("settings", "update");
+		this.#bmWindow.panel.style.width = this.plugSettings.panelWidth;
+		this.#bmWindow.panel.style.height = this.plugSettings.panelHeight;
 	}
 
 	get settingsObj() {
 		return {
 			list: [
+				{
+					key: "panelWidth",
+					text: "Set panel width.",
+					value: this.plugSettings.panelWidth,
+					prompt: "width",
+					promptType: "text"
+				},
+				{
+					key: "panelHeight",
+					text: "Set panel height.",
+					value: this.plugSettings.panelHeight,
+					prompt: "height",
+					promptType: "text"
+				},
 				{
 					key: "sideButton",
 					text: "Show SideButton",
@@ -913,6 +934,7 @@ class BookmarkPlugin {
 			cb: (key, value) => {
 				this.plugSettings[key] = value;
 				settings.update();
+				this.#onSettingsUpdated();
 			}
 		};
 	}
