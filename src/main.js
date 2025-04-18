@@ -16,7 +16,7 @@ class BMWindow {
 	#content = null;
 	#debug = tag("button", { className: "mnbm-debug", innerText: "<>", dataset: { action: "debug" } });
 	
-	debugMode(mode) { alert(!!mode); this.#debug.style.display = !!mode ? "block" : "none" }
+	debugMode(mode) { this.#debug.style.display = !!mode ? "block" : "none" }
 	
 	constructor () {
 		this.panel.innerHTML = `
@@ -331,8 +331,7 @@ class DataManager extends BMWContent{
 	}
 	
 	mapRoot(paths, idx) {
-		debugManager.log("mapping...", paths, idx);
-		if (path.length == 0) return null;
+		if (paths.length == 0) return null;
 		let path = "";
 		while (paths[idx][0] != idx) {
 			path = paths[idx][1] + path;
@@ -570,7 +569,7 @@ class DataManager extends BMWContent{
 		
 	setTree(paths, files) {
 		const queue = [];
-		files.forEach((f) => { queue.push([f[0], this.mapRoot(paths, f[1][0]), f[2]]) });
+		files.forEach((f) => { queue.push([f[0], this.mapRoot(paths, f[1][0]), f[1][1]]) });
 		this.list.innerHTML = "";
 		queue.forEach((q) => { this.addFile(...q) });
 	}
@@ -772,8 +771,8 @@ class BookmarkPlugin {
 					debugManager.log(this.#array);
 					return;
 				case "tree":
-					const t = dtManager.getTree(true);
-					debugManager.log(...t[2], "=>", ...t[0], ...t[1]);
+					const tree = dtManager.getTree(true);
+					debugManager.log(...tree[2], "=>", ...tree[0], ...tree[1]);
 					return;
 				case "clear":
 					debugManager.list.innerHTML = "";
@@ -836,9 +835,9 @@ class BookmarkPlugin {
 		
 		data.regex.forEach((req) => { dtManager.regexManager.addRegex(...req) });
 		
-		const tree = new Map();
-		data.file.forEach((v, k) => { tree.set(k, v.uri) });
-		dtManager.setTree(this.#data.path, tree);
+		const tree = [];
+		data.file.forEach((v, k) => { tree.push([k, v.uri]) });
+		dtManager.setTree(data.path, tree);
 		
 		document.head.append(this.#style);
 		
@@ -847,9 +846,9 @@ class BookmarkPlugin {
 	}
 
 	async destroy() {
-		this.#showSB.hide();
-		this.#bmWindow.visible = false;
-		this.#style.remove();
+		this.#showSB?.hide();
+		if (this.#bmWindow) this.#bmWindow.visible = false;
+		this.#style?.remove();
 		editorManager.editor.commands.removeCommand("readyBookmark");
 		editorManager.editor.commands.removeCommand("toggleBookmarkList");
 		editorManager.editor.commands.removeCommand("toggleBookmark");
@@ -899,37 +898,29 @@ class BookmarkPlugin {
 	syncData(file, saveLog = false) { // CHECK ERROR
 		const ff = this.#dtManager.findFile(file.id);
 		const df = this.#data.file.get(file.id);
-		debugManager.log("init", [!!ff, !!df]);
 		if (ff) { // IS LOGGED
 			if (df) { // IS SAVED
-				debugManager.log("ffdf");
 				if (this.#dtManager.mapRoot(this.#data.path, df.uri[0]) == ff[0] && df.uri[1] == ff[1]) return; // LOGGED = SAVED
 				this.#dtManager.removeFile(file.id);
 				this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
 			} else if (!saveLog) { // INVALID LOG
-			debugManager.log("ff!s");
 				this.#dtManager.removeFile(file.id);
 			};
 		} else if (!df) { // NOT LOGGED NOR SAVED
-		debugManager.log("!ff!df");
 			return;
 		};
-		debugManager.log("pulltree");
 		this.saveTree();
-		debugManager("treepulled");
 	}
 	
 	async saveData(file) { // CHECK ERROR
 		if (file) {
-			debugManager.log("fileissaved: " + (this.#data.file.has(file.id) ?? "null"));
 			if (!this.#data.file.has(file.id)) this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
 			if (this.#array.length == 0) {
 				if (this.#data.file.has(file.id)) this.#data.file.delete(file.id);
 				this.#dtManager.removeFile(file.id);
 			};
-			debugManager.log("initsync...");
 			this.syncData(file, true);
-			debugManager.log("endsync...");
+			if (this.#data.file.has(file.id)) this.#data.file.get(file.id).array = [...this.#array];
 		} else {
 			this.saveTree();
 		};
