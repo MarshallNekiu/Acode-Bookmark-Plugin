@@ -251,6 +251,7 @@ class BookmarkManager extends BMWContent {
 }
 
 class RegexManager extends BMWContent {
+	static #signalRemoved = new Event("remove");
 	
 	constructor() {
 		super();
@@ -267,6 +268,7 @@ class RegexManager extends BMWContent {
 			switch (target.dataset.action) {
 				case "erase":
 					target.parentElement.remove();
+					this.list.dispatchEvent(RegexManager.#signalRemoved);
 					return;
 			}
 		});
@@ -742,6 +744,11 @@ class BookmarkPlugin {
 		});
 		
 		dtManager.regexManager.list.addEventListener("input", (e) => {
+			data.regex = dtManager.regexManager.getRegex();
+			dtManager.applyRegex();
+		});
+		
+		dtManager.regexManager.list.addEventListener("remove", (e) => {
 			data.regex = dtManager.regexManager.getRegex();
 			dtManager.applyRegex();
 		});
