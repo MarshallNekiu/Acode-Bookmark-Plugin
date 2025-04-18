@@ -404,13 +404,27 @@ class DataManager extends BMWContent{
 	
 	hasFile(id) { return !!this.#getFile(id) }
 	
-	hasPath(loc, fn) {
+	findFile(id) {
+		const file = this.#getFile;
+		if (!file) return null;
+		let folder = file.parentElement;
+		let path = "";
+		
+		while (folder) {
+			path = path + folder.path;
+			folder = folder.parentElement;
+		}
+		return [file.id, path, file.textNode.innerText];
+	}
+	
+	hasPath(loc, fn, id) {
 		loc = decodeURIComponent(loc);
 		const tree = this.getTree(true);
 		
 		for (let e in tree[2]) {
 			if (e[1][0] == loc) {
 				if (fn && fn != e[1][1]) continue;
+				if (id && id != e[0]) continue;
 				return true;
 			};
 		}
@@ -587,7 +601,7 @@ class DataManager extends BMWContent{
 
 class BookmarkPlugin {
 	#fsData;
-	#data = { plugin: { version: "1.2.3" }, file: new Map(), regex: [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
+	#data = { plugin: { version: "1.2.3" }, path: [], file: new Map(), regex: [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]] };
 	#file = editorManager.activeFile;
 	#buffer = {};
 	#array = [];
@@ -606,16 +620,16 @@ class BookmarkPlugin {
 	async init() {
 		const self = this;
 		const fsData = this.#fsData = await fs(window.DATA_STORAGE + "bookmark.json");
-		if (!await fsData.exists()) await fs(window.DATA_STORAGE).createFile("bookmark.json", JSON.stringify({ plugin: this.#data.plugin, file: [], regex: this.#data.regex }));
+		if (!await fsData.exists()) await fs(window.DATA_STORAGE).createFile("bookmark.json", JSON.stringify({ plugin: this.#data.plugin, path: [], file: [], regex: this.#data.regex }));
 		
 		const dataRaw = await fsData.readFile("utf8");
 		const data = dataRaw.startsWith('{"p') ? JSON.parse(dataRaw) : this.#data;
 		
 		if (data.plugin.version != "1.2.3") {
 			if (data.file.toString() == "[object Object]") {
-				if (data.path) delete data.path;
 				const newDFObj = new Map();
-				for (let id in data.file) { newDFObj.set(id, { uri: [0, "", data.file[id].name], array: data.file[id].array }) }
+				for (let id in data.file) { newDFObj.set(id, { uri: [0, data.file[id].name], array: data.file[id].array }) }
+				data.path = [[0, ""]];
 				data.file = newDFObj;
 			};
 			data.regex = data.regex ?? [["com\\.termux", "::"], ["file:\\/\\/\\/", "///"]];
@@ -873,6 +887,42 @@ class BookmarkPlugin {
 	updateGutter() {
 		for (let i = 0; i < editorManager.editor.session.getLength(); i++) { editorManager.editor.session.removeGutterDecoration(i, "mnbm-gutter") }
 		this.#array.forEach((row) => { editorManager.editor.session.addGutterDecoration(row, "mnbm-gutter") });
+	}
+	
+	syncData(file) {
+		if (this.#dtManager.hasPath(decodeURIComponent(file.location), file.filename, file.id)) return;
+		this.#dtManager.removeFile(file.id);
+		this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
+	}
+	
+	async saveData(file, array, overwrite = false) {
+		const [paths, files, uri] = this.#dtManager.getTree(true);
+		const [mpaths, mfiles, muri] = [new Map(paths), new Map(files), new Map(uri)];
+		if (file) {
+			array = array ?? this.#array;
+			if (mfiles.has(file.id)) {
+				if (muri.get(file.id)[1] != file.filename || muri.get(file.id)[0] != decodeURIComponent(file.location)) {
+					this.#dtManager.removeFile(file.id);
+					this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
+				}
+			} else {
+				this.#dtManager.addFile(file.id, file.location, file.filename);
+				const tree = this.#dtManager.getTree();
+				tree.forEach((v, k) => { this.#data.file.set(k, { uri: v, array: this.#data.file.get(k)?.array ?? []/*ERRORCASE*/ }) });
+			};
+			if (array.length == 0) {
+				this.#data.file.delete(file.id);
+				this.dtManager.removeFile(file.id);
+			};
+			if (overwrite) {
+				this.#array.splice(0, Infinity, ...array);
+				this.#bmManager.makeList(this.#array);
+				this.updateGutter();
+			};
+		};
+		this.getTree()[].forEach((v, k) => { tree.set(k, { uri: v, array: this.#data.file.get(k)?.array ?? []/*ERRORCASE*/ }) });
+		this.#data.file = tree;
+		await this.#fsData.writeFile(JSON.stringify({ plugin: this.#data.plugin, file: Array.from(tree), regex: this.#data.regex }));
 	}
 	
 	#shiftNtfQueue() {
