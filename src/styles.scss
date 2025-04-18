@@ -63,6 +63,14 @@
 			padding: 2px;
 			background: rgba(255,255,255,0.1);
 			border-radius: 3px;
+			
+			.mnbm-debug {
+				//background: rgba(20,200,20,0.6);
+				text-align: center;
+				padding-left: 8px;
+				padding-right: 8px;
+				z-index: 1;
+			}
 
 			.mnbm-control-panel {
 				width: auto;

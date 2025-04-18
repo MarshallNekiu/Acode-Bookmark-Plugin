@@ -10,9 +10,13 @@ const alert = acode.require("alert");
 class BMWindow {
 	static #signalShow = new Event("show");
 	static #signalHide = new Event("hide");
+	static #signalDebug = new Event("debug");
 	
 	#panel = tag("section", { className: "mnbm-window" });
 	#content = null;
+	#debug = tag("button", { className: "mnbm-debug", innerText: "<>", dataset: { action: "debug" } });
+	
+	debugMode(mode) { alert(!!mode); this.#debug.style.display = !!mode ? "block" : "none" }
 	
 	constructor () {
 		this.panel.innerHTML = `
@@ -27,9 +31,12 @@ class BMWindow {
 			</div>
 			<div class="mnbm-bg"> </div>
 		`;
+		this.panel.querySelector(".mnbm-header").prepend(this.#debug);
+		this.debugMode(false);
 		this.panel.querySelector(".mnbm-drag").addEventListener("touchmove", async (e) => this.#onTouchMoved(e));
 		this.panel.querySelector(".mnbm-bg").addEventListener("touchmove", async (e) => this.#onTouchMoved(e));
 		this.panel.querySelector(".mnbm-close").addEventListener("click", (e) => this.hide());
+		this.#debug.addEventListener("click", (e) => this.panel.dispatchEvent(BMWindow.#signalDebug));
 	}
 	
 	show() {
@@ -324,6 +331,8 @@ class DataManager extends BMWContent{
 	}
 	
 	mapRoot(paths, idx) {
+		debugManager.log("mapping...", paths, idx);
+		if (path.length == 0) return null;
 		let path = "";
 		while (paths[idx][0] != idx) {
 			path = paths[idx][1] + path;
@@ -414,7 +423,7 @@ class DataManager extends BMWContent{
 	hasFile(id) { return !!this.#getFile(id) }
 	
 	findFile(id) {
-		const file = this.#getFile;
+		const file = this.#getFile(id);
 		if (!file) return null;
 		let folder = file.parentElement;
 		let path = "";
@@ -606,7 +615,6 @@ class BookmarkPlugin {
 	#dtManager = new DataManager();
 	#bmWindow = new BMWindow();
 	#showSB;
-	#debugSB;
 	#ntfQueue = [];
 	
   constructor() {
@@ -653,23 +661,13 @@ class BookmarkPlugin {
 		});
 		this.#showSB.show();
 		
-		this.#debugSB = SideButton({
-			text: "debug",
-			icon: "my-icon",
-			onclick() {
-				bmWindow.visible = true;
-				bmWindow.setContent(debugManager);
-			},
-			backgroundColor: "#3e4dc4",
-			textColor: "#000"
-		});
-		this.#debugSB.show();
-		
 		// HTML EVENT //
 		bmWindow.panel.addEventListener("show", () => {
 			bmWindow.setContent(bmManager);
 			bmManager.editList(this.#array);
 		});
+		
+		bmWindow.panel.addEventListener("debug", () => { bmWindow.setContent(debugManager) });
 		
 		// BOOKMARK MANAGER //
 		bmManager.controlPanel.addEventListener("click", async (e) => {
@@ -759,6 +757,7 @@ class BookmarkPlugin {
 					debugManager.log(
 						data,
 						"plugin: " + JSON.stringify(data.plugin),
+						"path: " + JSON.stringify(data.path),
 						"file: ", ...Array.from(data.file),
 						"regex: " + JSON.stringify(data.regex)
 					);
@@ -773,8 +772,8 @@ class BookmarkPlugin {
 					debugManager.log(this.#array);
 					return;
 				case "tree":
-					const [t0, t1] = [dtManager.getTree(), dtManager.getTree(true)];
-					debugManager.log(...t1[2], "=>", ...t0[0], ...t0[1]);
+					const t = dtManager.getTree(true);
+					debugManager.log(...t[2], "=>", ...t[0], ...t[1]);
 					return;
 				case "clear":
 					debugManager.list.innerHTML = "";
@@ -804,7 +803,7 @@ class BookmarkPlugin {
 			this.updateGutter();
 			this.#file = e;
 			dtManager.tryFocus(this.#file.id);
-			this.notify("Bookmark switched");
+			//this.notify("Bookmark switched");
 		});
 		
 		//editorManager.on("rename-file", (e) => {});
@@ -813,7 +812,7 @@ class BookmarkPlugin {
 			await this.saveData(this.#file);
 			this.notify("Bookmark saved");
 		});
-		
+	
 		editorManager.on("remove-file", (e) => { if (this.#buffer[e.id])/*!ERRORCASE*/ delete this.#buffer[e.id] });
 		
 		editorManager.editor.on("change", (e) => {
@@ -844,12 +843,11 @@ class BookmarkPlugin {
 		document.head.append(this.#style);
 		
 		this.#onSettingsUpdated();
-		this.notify("ready");
+		//this.notify("ready");
 	}
 
 	async destroy() {
 		this.#showSB.hide();
-		this.#debugSB.hide();
 		this.#bmWindow.visible = false;
 		this.#style.remove();
 		editorManager.editor.commands.removeCommand("readyBookmark");
@@ -898,35 +896,44 @@ class BookmarkPlugin {
 		this.#data.file = data.file;
 	}
 	
-	syncData(file, saveLog = false) {
+	syncData(file, saveLog = false) { // CHECK ERROR
 		const ff = this.#dtManager.findFile(file.id);
 		const df = this.#data.file.get(file.id);
+		debugManager.log("init", [!!ff, !!df]);
 		if (ff) { // IS LOGGED
 			if (df) { // IS SAVED
+				debugManager.log("ffdf");
 				if (this.#dtManager.mapRoot(this.#data.path, df.uri[0]) == ff[0] && df.uri[1] == ff[1]) return; // LOGGED = SAVED
 				this.#dtManager.removeFile(file.id);
 				this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
 			} else if (!saveLog) { // INVALID LOG
+			debugManager.log("ff!s");
 				this.#dtManager.removeFile(file.id);
 			};
 		} else if (!df) { // NOT LOGGED NOR SAVED
+		debugManager.log("!ff!df");
 			return;
 		};
+		debugManager.log("pulltree");
 		this.saveTree();
+		debugManager("treepulled");
 	}
 	
-	async saveData(file) {
+	async saveData(file) { // CHECK ERROR
 		if (file) {
+			debugManager.log("fileissaved: " + (this.#data.file.has(file.id) ?? "null"));
 			if (!this.#data.file.has(file.id)) this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
-			if (array.length == 0) {
+			if (this.#array.length == 0) {
 				if (this.#data.file.has(file.id)) this.#data.file.delete(file.id);
-				this.dtManager.removeFile(file.id);
+				this.#dtManager.removeFile(file.id);
 			};
+			debugManager.log("initsync...");
 			this.syncData(file, true);
+			debugManager.log("endsync...");
 		} else {
 			this.saveTree();
 		};
-		await this.#fsData.writeFile(JSON.stringify({ plugin: this.#data.plugin, path: this.#data.path file: Array.from(this.#data.file), regex: this.#data.regex }));
+		await this.#fsData.writeFile(JSON.stringify({ plugin: this.#data.plugin, path: this.#data.path, file: Array.from(this.#data.file), regex: this.#data.regex }));
 	}
 	
 	#shiftNtfQueue() {
@@ -954,7 +961,8 @@ class BookmarkPlugin {
 			toggleBMLCommand: "Ctrl-B",
 			sideButton: true,
 			panelWidth: "50%",
-			panelHeight: "50%"
+			panelHeight: "50%",
+			debug: false
 		};
 		settings.update(false)
 	}
@@ -970,6 +978,8 @@ class BookmarkPlugin {
 		} else {
 			this.#showSB?.hide();
 		};
+		
+		this.#bmWindow.debugMode(!!this.plugSettings.debug);
 
 		editorManager.editor.commands.removeCommand("toggleBookmarkList");
 		if (this.plugSettings.toggleBMLCommand.length > 0) {
@@ -1026,7 +1036,7 @@ class BookmarkPlugin {
 				bindKey: { win: this.plugSettings.prevBMCommand },
 				exec: () => {
 					const row = editorManager.editor.getSelectionRange().start.row;
-					for (let r of this.#array {
+					for (let r of this.#array) {
 						if (r < row) {
 							editorManager.editor.gotoLine(r + 1);
 							break;
@@ -1035,7 +1045,6 @@ class BookmarkPlugin {
 				}
 			});
 		};
-	}
 	}
 
 	get settingsObj() {
@@ -1059,6 +1068,12 @@ class BookmarkPlugin {
 					key: "sideButton",
 					text: "Show SideButton",
 					checkbox: !!this.plugSettings.sideButton,
+					info: ``
+				},
+				{
+					key: "debug",
+					text: "debug",
+					checkbox: !!this.plugSettings.debug,
 					info: ``
 				},
 				{
