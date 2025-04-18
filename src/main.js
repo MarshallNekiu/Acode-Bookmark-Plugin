@@ -921,6 +921,7 @@ class BookmarkPlugin {
 			};
 			this.syncData(file, true);
 			if (this.#data.file.has(file.id)) this.#data.file.get(file.id).array = [...this.#array];
+			this.#dtManager.tryFocus(file.id);
 		} else {
 			this.saveTree();
 		};
