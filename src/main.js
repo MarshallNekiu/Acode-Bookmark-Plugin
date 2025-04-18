@@ -323,13 +323,13 @@ class DataManager extends BMWContent{
 		this.regexManager.controlPanel.firstElementChild.addEventListener("click", (e) => { this.controlPanel.dispatchEvent(DataManager.#signalToggle) });
 	}
 	
-	static mapRoot(path, idx) {
+	mapRoot(paths, idx) {
 		let path = "";
-		while (path[idx][0] != idx) {
-			path = path[idx][1] + path;
-			idx = path[idx][0];
+		while (paths[idx][0] != idx) {
+			path = paths[idx][1] + path;
+			idx = paths[idx][0];
 		}
-		return path;
+		return paths[idx][1] + path;
 	}
 	
 	addFile(id, loc, fn) {
@@ -530,7 +530,7 @@ class DataManager extends BMWContent{
 		return path;
 	};
 	
-	getTree(uri = false) { // [ Map([root_idx, branch]), Map([id, [branch_idx, name]]), #uri = Map([id, [path, name]]) ]
+	getTree(uri = false) { // [ path = [root_idx, branch], file = [id, [branch_idx, name]], #uri = [id, [path, name]] ]
 		const folders = this.list.querySelectorAll(".mnbm-folder");
 		if (folders.length == 0) return [[], []];
 		const paths = [];
@@ -561,7 +561,7 @@ class DataManager extends BMWContent{
 		
 	setTree(paths, files) {
 		const queue = [];
-		files.forEach((f) => { queue.push([f[0], DataManager.mapRoot(paths, f[1][0]), f[2]]) });
+		files.forEach((f) => { queue.push([f[0], this.mapRoot(paths, f[1][0]), f[2]]) });
 		this.list.innerHTML = "";
 		queue.forEach((q) => { this.addFile(...q) });
 	}
@@ -682,7 +682,7 @@ class BookmarkPlugin {
 					this.toggleBookmark(row);
 					return;
 				case "save":
-					await this.saveData(this.#file, this.#array);
+					await this.saveData(this.#file);
 					this.notify("Bookmark saved");
 					return;
 				case "load":
@@ -810,7 +810,7 @@ class BookmarkPlugin {
 		//editorManager.on("rename-file", (e) => {});
 		
 		editorManager.on("save-file", async (e) => {
-			await this.saveData(this.#file, this.#array);
+			await this.saveData(this.#file);
 			this.notify("Bookmark saved");
 		});
 		
@@ -889,21 +889,24 @@ class BookmarkPlugin {
 		this.#array.forEach((row) => { editorManager.editor.session.addGutterDecoration(row, "mnbm-gutter") });
 	}
 	
-	syncData(file) {
+	syncData(file, saveLog) {
 		const ff = this.#dtManager.findFile(file.id);
 		const df = this.#data.file.get(file.id);
 		if (ff) { // IS LOGGED
 			if (df) { // IS SAVED
-				if (DataManager.mapRoot(this.#data.path, df.uri[0]) == ff[1] && df.uri[1] == ff[2]) return; // LOGGED = SAVED
+				if (this.#dtManager.mapRoot(this.#data.path, df.uri[0]) == ff[1] && df.uri[1] == ff[2]) return; // LOGGED = SAVED
 				this.dtManager.removeFile(file.id);
 				this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
-			} else { // INVALID LOG
+			} else if (!saveLog) { // INVALID LOG
 				this.#dtManager.removeFile(file.id);
 			};
 		} else if (!df) { // NOT LOGGED NOR SAVED
 			return;
 		};
-		// SAVE NEW TREE
+		this.saveTree();
+	}
+	
+	saveTree() {
 		const newTree = this.#dtManager.getTree();
 		const newData = { path: newTree[0], file: new Map() };
 		
@@ -913,22 +916,10 @@ class BookmarkPlugin {
 		this.#data.file = newData.file;
 	}
 	
-	async saveData(file, array, overwrite = false) {
-		const [paths, files, uri] = this.#dtManager.getTree(true);
-		const [mpaths, mfiles, muri] = [new Map(paths), new Map(files), new Map(uri)];
+	async saveData(file) {
 		if (file) {
-			this.syncData(file);
-			array = array ?? this.#array;
-			if (this.#data.file.has(file.id)) {
-				if (muri.get(file.id)[1] != file.filename || muri.get(file.id)[0] != decodeURIComponent(file.location)) {
-					this.#dtManager.removeFile(file.id);
-					this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
-				}
-			} else {
-				this.#dtManager.addFile(file.id, file.location, file.filename);
-				const tree = this.#dtManager.getTree();
-				tree.forEach((v, k) => { this.#data.file.set(k, { uri: v, array: this.#data.file.get(k)?.array ?? []/*ERRORCASE*/ }) });
-			};
+			if (!this.#data.file.has(file.id)) this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
+			this.syncData(file, true);
 			if (array.length == 0) {
 				this.#data.file.delete(file.id);
 				this.dtManager.removeFile(file.id);
@@ -938,10 +929,10 @@ class BookmarkPlugin {
 				this.#bmManager.makeList(this.#array);
 				this.updateGutter();
 			};
+		} else {
+			this.saveTree();
 		};
-		this.getTree()[].forEach((v, k) => { tree.set(k, { uri: v, array: this.#data.file.get(k)?.array ?? []/*ERRORCASE*/ }) });
-		this.#data.file = tree;
-		await this.#fsData.writeFile(JSON.stringify({ plugin: this.#data.plugin, file: Array.from(tree), regex: this.#data.regex }));
+		await this.#fsData.writeFile(JSON.stringify({ plugin: this.#data.plugin, path: this.#data.path file: Array.from(this.#data.file), regex: this.#data.regex }));
 	}
 	
 	#shiftNtfQueue() {
