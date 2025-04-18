@@ -130,7 +130,7 @@ class Debugger extends BMWContent {
 			const li = tag("li", {
 				className: "mnbm-item",
 				prefixNode: tag("p", { className: "mnbm-prefix", innerText: this.list.childElementCount }),
-				textNode: tag("p", { className: "mnbm-text", innerText: JSON.stringify(log) ?? "invalid log" })
+				textNode: tag("p", { className: "mnbm-text", innerText: JSON.stringify(log) })
 			});
 			li.append(li.prefixNode, li.textNode, tag("button", { className: "mnbm-erase", dataset: { action: "erase" }, innerText: "X" }));
 			li.textNode.scrollLeft = 100000;
@@ -423,7 +423,7 @@ class DataManager extends BMWContent{
 			path = path + folder.path;
 			folder = folder.parentElement;
 		}
-		return [file.id, path, file.textNode.innerText];
+		return [path, file.textNode.innerText];
 	}
 	
 	hasPath(loc, fn, id) {
@@ -889,13 +889,22 @@ class BookmarkPlugin {
 		this.#array.forEach((row) => { editorManager.editor.session.addGutterDecoration(row, "mnbm-gutter") });
 	}
 	
-	syncData(file, saveLog) {
+	saveTree() {
+		const tree = this.#dtManager.getTree();
+		const data = { path: tree[0], file: new Map() };
+		
+		tree[1].forEach((kv) => { data.file.set(kv[0], { uri: kv[1], array: this.#data.file.get(kv[0])?.array ?? []/*ERRORCASE*/ }) });
+		this.#data.path = data.path;
+		this.#data.file = data.file;
+	}
+	
+	syncData(file, saveLog = false) {
 		const ff = this.#dtManager.findFile(file.id);
 		const df = this.#data.file.get(file.id);
 		if (ff) { // IS LOGGED
 			if (df) { // IS SAVED
-				if (this.#dtManager.mapRoot(this.#data.path, df.uri[0]) == ff[1] && df.uri[1] == ff[2]) return; // LOGGED = SAVED
-				this.dtManager.removeFile(file.id);
+				if (this.#dtManager.mapRoot(this.#data.path, df.uri[0]) == ff[0] && df.uri[1] == ff[1]) return; // LOGGED = SAVED
+				this.#dtManager.removeFile(file.id);
 				this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
 			} else if (!saveLog) { // INVALID LOG
 				this.#dtManager.removeFile(file.id);
@@ -906,29 +915,14 @@ class BookmarkPlugin {
 		this.saveTree();
 	}
 	
-	saveTree() {
-		const newTree = this.#dtManager.getTree();
-		const newData = { path: newTree[0], file: new Map() };
-		
-		newTree[1].forEach((kv) => { newData.file.set(kv[0], { uri: kv[1], array: this.#data.file.get(kv[0])?.array ?? []/*ERRORCASE*/ }) });
-		
-		this.#data.path = newData.path;
-		this.#data.file = newData.file;
-	}
-	
 	async saveData(file) {
 		if (file) {
 			if (!this.#data.file.has(file.id)) this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
-			this.syncData(file, true);
 			if (array.length == 0) {
-				this.#data.file.delete(file.id);
+				if (this.#data.file.has(file.id)) this.#data.file.delete(file.id);
 				this.dtManager.removeFile(file.id);
 			};
-			if (overwrite) {
-				this.#array.splice(0, Infinity, ...array);
-				this.#bmManager.makeList(this.#array);
-				this.updateGutter();
-			};
+			this.syncData(file, true);
 		} else {
 			this.saveTree();
 		};
