@@ -323,6 +323,15 @@ class DataManager extends BMWContent{
 		this.regexManager.controlPanel.firstElementChild.addEventListener("click", (e) => { this.controlPanel.dispatchEvent(DataManager.#signalToggle) });
 	}
 	
+	static mapRoot(path, idx) {
+		let path = "";
+		while (path[idx][0] != idx) {
+			path = path[idx][1] + path;
+			idx = path[idx][0];
+		}
+		return path;
+	}
+	
 	addFile(id, loc, fn) {
 		loc = decodeURIComponent(loc);
 		const arrLoc = this.pathSplit(loc);
@@ -550,22 +559,9 @@ class DataManager extends BMWContent{
 		return [paths, files];
 	}
 		
-	setTree(tree) {
-		const [paths, files] = [Array.from(tree[0]), Array.from(tree[1])];
-		
-		for (let i = 0; i < map.length; i++) {
-			if (map[i][1][0] == i) {
-				queue.push([map[i][0], map[i][1][1], map[i][1][2]]);
-				continue;
-			};
-			let [path, j] = [map[i][1][1], i];
-			
-			while (map[j][1][0] != j) {
-				j = map[j][1][0];
-				path = map[j][1][1] + path;
-			}
-			queue.push([map[i][0], path, map[i][1][2]]);
-		}
+	setTree(paths, files) {
+		const queue = [];
+		files.forEach((f) => { queue.push([f[0], DataManager.mapRoot(paths, f[1][0]), f[2]]) });
 		this.list.innerHTML = "";
 		queue.forEach((q) => { this.addFile(...q) });
 	}
@@ -841,6 +837,10 @@ class BookmarkPlugin {
 		
 		data.regex.forEach((req) => { dtManager.regexManager.addRegex(...req) });
 		
+		const tree = new Map();
+		data.file.forEach((v, k) => { tree.set(k, v.uri) });
+		dtManager.setTree(this.#data.path, tree);
+		
 		document.head.append(this.#style);
 		
 		this.#onSettingsUpdated();
@@ -890,17 +890,36 @@ class BookmarkPlugin {
 	}
 	
 	syncData(file) {
-		if (this.#dtManager.hasPath(decodeURIComponent(file.location), file.filename, file.id)) return;
-		this.#dtManager.removeFile(file.id);
-		this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
+		const ff = this.#dtManager.findFile(file.id);
+		const df = this.#data.file.get(file.id);
+		if (ff) { // IS LOGGED
+			if (df) { // IS SAVED
+				if (DataManager.mapRoot(this.#data.path, df.uri[0]) == ff[1] && df.uri[1] == ff[2]) return; // LOGGED = SAVED
+				this.dtManager.removeFile(file.id);
+				this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
+			} else { // INVALID LOG
+				this.#dtManager.removeFile(file.id);
+			};
+		} else if (!df) { // NOT LOGGED NOR SAVED
+			return;
+		};
+		// SAVE NEW TREE
+		const newTree = this.#dtManager.getTree();
+		const newData = { path: newTree[0], file: new Map() };
+		
+		newTree[1].forEach((kv) => { newData.file.set(kv[0], { uri: kv[1], array: this.#data.file.get(kv[0])?.array ?? []/*ERRORCASE*/ }) });
+		
+		this.#data.path = newData.path;
+		this.#data.file = newData.file;
 	}
 	
 	async saveData(file, array, overwrite = false) {
 		const [paths, files, uri] = this.#dtManager.getTree(true);
 		const [mpaths, mfiles, muri] = [new Map(paths), new Map(files), new Map(uri)];
 		if (file) {
+			this.syncData(file);
 			array = array ?? this.#array;
-			if (mfiles.has(file.id)) {
+			if (this.#data.file.has(file.id)) {
 				if (muri.get(file.id)[1] != file.filename || muri.get(file.id)[0] != decodeURIComponent(file.location)) {
 					this.#dtManager.removeFile(file.id);
 					this.#dtManager.addFile(file.id, file.location ?? "", file.filename ?? "UNNAMED");
@@ -956,8 +975,82 @@ class BookmarkPlugin {
 	}
 	
 	#onSettingsUpdated() {
+		const self = this;
+		
 		this.#bmWindow.panel.style.width = this.plugSettings.panelWidth;
 		this.#bmWindow.panel.style.height = this.plugSettings.panelHeight;
+		
+		if (this.plugSettings.sideButton) {
+			this.#showSB?.show();
+		} else {
+			this.#showSB?.hide();
+		};
+
+		editorManager.editor.commands.removeCommand("toggleBookmarkList");
+		if (this.plugSettings.toggleBMLCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+				name: "toggleBookmarkList",
+				description: "",
+				bindKey: { win: this.plugSettings.toggleBMLCommand },
+				exec: () => {
+					if (this.#bmWindow.visible) {
+						this.#bmWindow.hide();
+						return;
+					};
+					this.#bmWindow.show();
+				}
+			});
+		};
+
+		editorManager.editor.commands.removeCommand("toggleBookmark");
+		if (this.plugSettings.toggleBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+				name: "toggleBookmark",
+				description: "",
+				bindKey: { win: this.plugSettings.toggleBMCommand },
+				exec: () => {
+					const row = editorManager.editor.getSelectionRange().start.row;
+					this.toggleBookmark(row);
+				}
+			});
+		};
+
+		editorManager.editor.commands.removeCommand("nextBookmark");
+		if (this.plugSettings.nextBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+				name: "nextBookmark",
+				description: "",
+				bindKey: { win: this.plugSettings.nextBMCommand },
+				exec: () => {
+					const row = editorManager.editor.getSelectionRange().start.row;
+					for (let r of this.#array) {
+						if (r > row) {
+							editorManager.editor.gotoLine(r + 1);
+							break;
+						};
+					}
+				}
+			});
+		};
+
+		editorManager.editor.commands.removeCommand("previousBookmark");
+		if (this.plugSettings.prevBMCommand.length > 0) {
+			editorManager.editor.commands.addCommand({
+				name: "previousBookmark",
+				description: "",
+				bindKey: { win: this.plugSettings.prevBMCommand },
+				exec: () => {
+					const row = editorManager.editor.getSelectionRange().start.row;
+					for (let r of this.#array {
+						if (r < row) {
+							editorManager.editor.gotoLine(r + 1);
+							break;
+						};
+					}
+				}
+			});
+		};
+	}
 	}
 
 	get settingsObj() {
